@@ -115,11 +115,11 @@ O projeto inclui autenticação JWT por padrão. Certifique-se de configurar cor
 
 **Exemplo de autenticação:**
 ```http
-POST /auth/login
+POST /auth
 Content-Type: application/json
 
 {
-  "username": "user",
+  "email": "email",
   "password": "password"
 }
 ```
