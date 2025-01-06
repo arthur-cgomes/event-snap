@@ -25,7 +25,9 @@ export class AuthController {
   ) {}
 
   @ApiOperation({
-    description: 'Autentica o usuário',
+    summary: 'Autenticação do usuário',
+    description:
+      'Permite que o usuário receba o seu token a partir do email e senha.',
   })
   @ApiResponse({
     type: ForbiddenException,
