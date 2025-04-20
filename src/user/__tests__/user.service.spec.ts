@@ -1,17 +1,17 @@
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { UserService } from '../user.service';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { FindManyOptions, ILike, Repository } from 'typeorm';
+import { UserType } from '../../common/enum/user-type.enum';
 import {
   MockRepository,
   repositoryMockFactory,
 } from '../../common/utils/test.util';
-import { FindManyOptions, ILike, Repository } from 'typeorm';
-import { User } from '../entity/user.entity';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import { CreateUserDto } from '../dto/create-user.dto';
-import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UpdateUserDto } from '../dto/update-user.dto';
+import { User } from '../entity/user.entity';
+import { UserService } from '../user.service';
 import { mockUser } from './mocks/user.mock';
-import { UserType } from '../../common/enum/user-type.enum';
 
 describe('UserService', () => {
   let service: UserService;

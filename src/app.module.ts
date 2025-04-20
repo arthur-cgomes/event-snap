@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { config } from 'dotenv';
 import { AuthModule } from './auth/auth.module';
-import { UserModule } from './user/user.module';
+import { EmailModule } from './email/email.module';
 import { HealthCheckModule } from './health-check/health-check.module';
+import { QrcodeModule } from './qrcode/qrcode.module';
+import { UploadModule } from './upload/upload.module';
+import { UserModule } from './user/user.module';
 
 config();
 
@@ -27,6 +30,9 @@ config();
     AuthModule,
     UserModule,
     HealthCheckModule,
+    UploadModule,
+    EmailModule,
+    QrcodeModule,
   ],
   providers: [],
 })

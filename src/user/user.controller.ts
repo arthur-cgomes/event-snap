@@ -1,64 +1,31 @@
 import {
-  Body,
   Controller,
   Delete,
   Get,
   Param,
-  Post,
-  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import {
   ApiBearerAuth,
-  ApiConflictResponse,
-  ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { UserService } from './user.service';
-import { UserDto } from './dto/user.dto';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './entity/user.entity';
-import { GetAllResponseDto } from '../common/dto/get-all.dto';
 import { DeleteResponseDto } from '../common/dto/delete-response.dto';
-import { AuthGuard } from '@nestjs/passport';
+import { GetAllResponseDto } from '../common/dto/get-all.dto';
+import { UserDto } from './dto/user.dto';
+import { User } from './entity/user.entity';
+import { UserService } from './user.service';
 
 @ApiBearerAuth()
 @ApiTags('User')
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
-
-  @Post()
-  @ApiOperation({
-    summary: 'Cadastra um novo usuário',
-  })
-  @ApiCreatedResponse({ type: UserDto })
-  @ApiConflictResponse({
-    description: 'Usuário com este e-mail já existe',
-  })
-  async createUser(@Body() createUserDto: CreateUserDto) {
-    return await this.userService.createUser(createUserDto);
-  }
-
-  @UseGuards(AuthGuard())
-  @Put('/:userId')
-  @ApiOperation({
-    summary: 'Atualiza um usuário',
-  })
-  @ApiOkResponse({ type: UserDto })
-  @ApiNotFoundResponse({ description: 'Usuário não encontrado' })
-  async updateUser(
-    @Param('userId') userId: string,
-    @Body() updateUserDto: UpdateUserDto,
-  ) {
-    return await this.userService.updateUser(userId, updateUserDto);
-  }
 
   @Get('/:userId')
   @ApiOperation({

@@ -1,189 +1,101 @@
-# 🚀 **Boilerplate NestJS**
+## 📸 Event Snap
 
-Um boilerplate robusto para desenvolvimento de aplicações backend utilizando **NestJS**, configurado com TypeORM, PostgreSQL, autenticação JWT, ESLint, Prettier, e suporte a testes com Jest.
-
----
-
-## 📦 **Tecnologias Utilizadas**
-
-- **Node.js** v22+
-- **NestJS** v10+
-- **TypeORM**
-- **PostgreSQL**
-- **JWT (Json Web Token)**
-- **ESLint** & **Prettier**
-- **Jest** (Testes unitários e e2e)
-- **Swagger** (Documentação de API)
-- **Docker** (opcional)
+Plataforma de gerenciamento de eventos que permite a geração de QR Codes personalizados e o upload de fotos por convidados, vinculadas diretamente a esses códigos.
 
 ---
 
-## 📂 **Estrutura do Projeto**
+### 🚀 Funcionalidades
+
+- ✅ **Autenticação com JWT**
+- ✅ **Cadastro e recuperação de senha com código de verificação via email (SendGrid)**
+- ✅ **Criação de QR Codes com data de expiração**
+- ✅ **Upload de imagens vinculado a QR Codes (Supabase Storage)**
+- ✅ **Relacionamentos entre usuários, QR Codes e uploads**
+- ✅ **Geração de QR Code em base64 (exibível no frontend)**
+- ✅ **Health check endpoint**
+- ✅ **Integração com Redis para verificação temporária**
+- ✅ **Documentação de rotas via Swagger**
+
+---
+
+### 🧱 Estrutura de Pastas
 
 ```
 src/
-├── auth/          # Módulo de autenticação
-├── common/        # Recursos compartilhados (filtros, pipes, etc.)
-├── config/        # Configurações (banco de dados, ambiente, etc.)
-├── health-check/  # Endpoint de verificação de saúde
-├── migrations/    # Migrações do banco de dados
-├── user/          # Módulo de usuários
-├── app.module.ts  # Módulo principal
-├── main.ts        # Ponto de entrada principal
+├── auth/             → Autenticação e JWT
+├── common/           → Entidades base e enums
+├── config/           → Configurações TypeORM, Redis, Supabase
+├── email/            → Envio de emails (SendGrid)
+├── health-check/     → Health check endpoint
+├── migrations/       → Migrations do TypeORM
+├── qrcode/           → Geração e relacionamento de QR Codes
+├── upload/           → Upload de imagens para o Supabase
+├── user/             → Cadastro e gestão de usuários
+└── main.ts           → Bootstrap da aplicação
 ```
 
 ---
 
-## ⚙️ **Configuração do Ambiente**
+### ⚙️ Tecnologias e Pacotes
 
-1. **Clone o repositório:**
-   ```bash
-   git clone git@github.com:arthur-cgomes/boilerplate-nestjs.git
-   cd boilerplate-nestjs
-   ```
-
-2. **Instale as dependências:**
-   ```bash
-   npm install
-   ```
-
-3. **Crie o arquivo `.env` a partir do exemplo:**
-   ```bash
-   cp .env.example .env
-   ```
-
-4. **Atualize as variáveis de ambiente no `.env`:**
-   ```
-    # PASSPORT
-    AUTH_SECRET= auth_secret
-    EXPIRE_IN= 7200
-
-    # DB
-    TYPEORM_CONNECTION= postgres
-    TYPEORM_HOST= localhost
-    TYPEORM_USERNAME= user
-    TYPEORM_PASSWORD= password
-    TYPEORM_DATABASE= name
-    TYPEORM_PORT= 5432
-    TYPEORM_SYNCHRONIZE= false
-    TYPEORM_ENTITIES= dist/**/*.entity.js
-   ```
-
-5. **Execute as migrações do banco de dados:**
-   ```bash
-   npm run migration:run
-   ```
+- **NestJS** — Framework principal
+- **TypeORM** — ORM com PostgreSQL
+- **JWT** — Autenticação
+- **Redis** — Armazenamento temporário de códigos
+- **SendGrid** — Envio de emails
+- **Supabase Storage** — Upload e armazenamento de imagens
+- **Swagger** — Documentação de API
+- **Multer** — Upload de arquivos
+- **Qrcode** — Geração de QR Codes em base64
 
 ---
 
-## 🛠️ **Scripts Disponíveis**
-
-- **Iniciar em desenvolvimento:**  
-  ```bash
-  npm run start:dev
-  ```
-- **Build de produção:**  
-  ```bash
-  npm run build
-  ```
-- **Iniciar em produção:**  
-  ```bash
-  npm run start:prod
-  ```
-- **Executar testes unitários:**  
-  ```bash
-  npm run test
-  ```
-- **Executar testes com cobertura:**  
-  ```bash
-  npm run test:cov
-  ```
-- **Executar ESLint:**  
-  ```bash
-  npm run lint
-  ```
-- **Formatar código com Prettier:**  
-  ```bash
-  npm run format
-  ```
-
----
-
-## 🔑 **Autenticação JWT**
-
-O projeto inclui autenticação JWT por padrão. Certifique-se de configurar corretamente a variável `JWT_SECRET` no arquivo `.env`.
-
-**Exemplo de autenticação:**
-```http
-POST /auth
-Content-Type: application/json
-
-{
-  "email": "email",
-  "password": "password"
-}
-```
-
----
-
-## 📊 **Documentação da API (Swagger)**
-
-A documentação da API está disponível após iniciar o servidor:
-
-```
-http://localhost:3000/api
-```
-
----
-
-## ✅ **Health Check**
-
-Para verificar o status da aplicação, acesse:
-
-```
-GET /health-check
-```
-
-**Exemplo de resposta:**
-```json
-{
-  "uptime": 120.56,
-  "message": "OK",
-  "timestamp": 1699999999999,
-  "checks": [
-    {
-      "name": "Database",
-      "type": "internal",
-      "status": true,
-      "details": "Connected"
-    }
-  ]
-}
-```
-
----
-
-## 🐳 **Docker (Opcional)**
-
-Para rodar com Docker, utilize:
+### 📦 Scripts úteis
 
 ```bash
-docker-compose up -d
+# Desenvolvimento com hot-reload
+npm run start:dev
+
+# Rodar migrations
+npm run migration:run
+
+# Gerar nova migration
+npm run migration:generate
+
+# Iniciar projeto em produção
+npm run start
+
+# Rodar testes
+npm run test
 ```
 
 ---
 
-## 🤝 **Contribuindo**
+### 🔐 Variáveis de ambiente `.env`
 
-1. Faça um fork do projeto.
-2. Crie uma nova branch: `git checkout -b feature/sua-feature`.
-3. Faça suas alterações e commit: `git commit -m "Adiciona nova funcionalidade"`
-4. Envie suas alterações: `git push origin feature/sua-feature`
-5. Abra um Pull Request.
+Use the `env.example` file for reference
 
 ---
 
-## 📜 **Licença**
+### 🧪 Upload de imagem via Postman
 
-Este projeto está licenciado sob a licença **UNLICENSED**.
+- **Rota**: `POST /upload/:token`
+- **Body**: `form-data`
+  - `Key`: `file`
+  - `Type`: File
+  - `Value`: selecione a imagem
+- **Header**: `Content-Type: multipart/form-data`
 
+---
+
+### 📄 Swagger
+
+Acesse:  
+`http://localhost:3000/api`  
+Para visualizar a documentação gerada com Swagger.
+
+---
+
+### 🧠 Sobre
+
+Esse projeto foi idealizado para eventos, aniversários, casamentos ou encontros, onde convidados podem tirar fotos e fazer o upload por meio de QR Codes, facilitando a centralização de registros visuais do evento.

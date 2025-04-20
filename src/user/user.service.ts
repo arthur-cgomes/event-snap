@@ -33,18 +33,12 @@ export class UserService {
     await this.userRepository.update(userId, { lastLogin: new Date() });
   }
 
-  async resetPassword(
-    name: string,
+  async resetPasswordByEmail(
     email: string,
     newPassword: string,
   ): Promise<void> {
-    const user = await this.userRepository.findOne({
-      where: { name, email },
-    });
-
-    if (!user) {
-      throw new NotFoundException('user not found with the data provided');
-    }
+    const user = await this.findByEmail(email);
+    if (!user) throw new NotFoundException('Usuário não encontrado');
 
     user.password = newPassword;
     await this.userRepository.save(user);
@@ -86,6 +80,10 @@ export class UserService {
     }
 
     return user;
+  }
+
+  public async findByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { email } });
   }
 
   public async getAllUsers(

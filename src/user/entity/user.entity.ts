@@ -1,12 +1,34 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { BaseCollection } from '../../common/entity/base.entity';
-import { BeforeInsert, BeforeUpdate, Column, Entity, Unique } from 'typeorm';
-import { UserType } from '../../common/enum/user-type.enum';
 import * as bcrypt from 'bcrypt';
+import {
+  BeforeInsert,
+  BeforeUpdate,
+  Column,
+  Entity,
+  OneToMany,
+  Unique,
+} from 'typeorm';
+import { BaseCollection } from '../../common/entity/base.entity';
+import { UserType } from '../../common/enum/user-type.enum';
+import { QrCode } from '../../qrcode/entity/qrcode.entity';
 
 @Entity('user')
 @Unique(['email'])
 export class User extends BaseCollection {
+  @ApiProperty({
+    type: String,
+    description: 'Nome do usuário',
+  })
+  @Column({ type: 'varchar', nullable: true, default: null })
+  name: string;
+
+  @ApiProperty({
+    type: String,
+    description: 'Contato do usuário',
+  })
+  @Column({ type: 'varchar', nullable: true, default: null })
+  phone: string;
+
   @ApiProperty({
     type: String,
     description: 'Email do usuário',
@@ -22,13 +44,6 @@ export class User extends BaseCollection {
   password: string;
 
   @ApiProperty({
-    type: String,
-    description: 'Nome do usuário',
-  })
-  @Column({ type: 'varchar', nullable: true, default: null })
-  name: string;
-
-  @ApiProperty({
     enum: UserType,
     description: 'Define o tipo de usuário',
   })
@@ -38,7 +53,6 @@ export class User extends BaseCollection {
   @ApiProperty({
     type: String,
     description: 'Nome do usuário que cadastrou o usuário',
-    nullable: true,
   })
   @Column({ type: 'varchar', nullable: true, default: null })
   createdBy?: string;
@@ -46,7 +60,6 @@ export class User extends BaseCollection {
   @ApiProperty({
     type: String,
     description: 'ID do usuário que cadastrou usuário',
-    nullable: true,
   })
   @Column({ type: 'varchar', nullable: true, default: null })
   createdById?: string;
@@ -54,10 +67,12 @@ export class User extends BaseCollection {
   @ApiProperty({
     type: Date,
     description: 'Último login do usuário',
-    nullable: true,
   })
   @Column({ type: 'timestamp', nullable: true, default: null })
   lastLogin?: Date;
+
+  @OneToMany(() => QrCode, (qrCode) => qrCode.user)
+  qrCodes: QrCode[];
 
   @BeforeInsert()
   @BeforeUpdate()

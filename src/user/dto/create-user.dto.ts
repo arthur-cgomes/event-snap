@@ -1,14 +1,36 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { UserType } from '../../common/enum/user-type.enum';
 
 export class CreateUserDto {
   @ApiProperty({
     type: String,
-    description: 'Email do usuário',
+    description: 'Nome do usuário',
   })
   @IsNotEmpty()
   @IsString()
+  name: string;
+
+  @ApiProperty({
+    type: String,
+    description: 'Contato do usuário',
+  })
+  @IsNotEmpty()
+  @IsString()
+  phone: string;
+
+  @ApiProperty({
+    type: String,
+    description: 'Email do usuário',
+  })
+  @IsNotEmpty()
+  @IsEmail()
   email: string;
 
   @ApiProperty({
@@ -21,14 +43,6 @@ export class CreateUserDto {
 
   @ApiProperty({
     type: String,
-    description: 'Nome do usuário',
-  })
-  @IsNotEmpty()
-  @IsString()
-  name: string;
-
-  @ApiProperty({
-    type: String,
     description: 'Nome do usuário que cadastrou o usuário',
   })
   @IsOptional()
@@ -37,7 +51,7 @@ export class CreateUserDto {
 
   @ApiProperty({
     type: String,
-    description: 'Id do usuario criador',
+    description: 'Id do usuário criador',
   })
   @IsOptional()
   @IsString()

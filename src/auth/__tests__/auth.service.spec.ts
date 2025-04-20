@@ -1,9 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AuthService } from '../auth.service';
-import { UserService } from '../../user/user.service';
-import { User } from '../../user/entity/user.entity';
-import { JwtService } from '@nestjs/jwt';
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { Test, TestingModule } from '@nestjs/testing';
+import { User } from '../../user/entity/user.entity';
+import { UserService } from '../../user/user.service';
+import { AuthService } from '../auth.service';
 import { AuthPayload } from '../interfaces/auth.interface';
 import { mockJwtPayload, mockJwtResponse, mockUser } from './mocks/auth.mock';
 

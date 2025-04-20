@@ -12,8 +12,8 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
 
   const options = new DocumentBuilder()
-    .setTitle(`Projeto Boilerplate - ${process.env.NODE_ENV}`)
-    .setDescription('Back-end do Projeto Boilerplate')
+    .setTitle(`Projeto Event Snap - ${process.env.NODE_ENV}`)
+    .setDescription('Back-end do Projeto Event Snap')
     .setVersion(version)
     .addBearerAuth()
     .build();
@@ -24,7 +24,7 @@ async function bootstrap() {
 
   await app.listen(PORT, '0.0.0.0');
   console.log(
-    `🤖 Projeto Boilerplate is in ${process.env.NODE_ENV} mode and is listening on port:`,
+    `📸 project event snap is in ${process.env.NODE_ENV} mode and is listening on port:`,
     PORT,
   );
 }
