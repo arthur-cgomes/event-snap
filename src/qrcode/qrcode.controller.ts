@@ -4,13 +4,13 @@ import { QrcodeService } from './qrcode.service';
 import { CreateQrcodeDto } from './dto/create-qrcode.dto';
 import { AuthGuard } from '@nestjs/passport';
 
-//@ApiBearerAuth()
+@ApiBearerAuth()
 @ApiTags('QRCode')
 @Controller('qrcode')
 export class QrcodeController {
   constructor(private readonly qrcodeService: QrcodeService) {}
 
-  //@UseGuards(AuthGuard())
+  @UseGuards(AuthGuard())
   @Post()
   @ApiOperation({ summary: 'Cria um novo QR code' })
   async createQrCode(@Body() createQrcodeDto: CreateQrcodeDto) {

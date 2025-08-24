@@ -4,11 +4,13 @@ import { QrcodeController } from './qrcode.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { QrCode } from './entity/qrcode.entity';
 import { PassportModule } from '@nestjs/passport';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([QrCode]),
     PassportModule.register({ defaultStrategy: 'jwt', session: false }),
+    UserModule,
   ],
   providers: [QrcodeService],
   controllers: [QrcodeController],

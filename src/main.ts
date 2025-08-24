@@ -12,8 +12,8 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
 
   const options = new DocumentBuilder()
-    .setTitle(`Projeto Event Snap - ${process.env.NODE_ENV}`)
-    .setDescription('Back-end do Projeto Event Snap')
+    .setTitle(`Projeto Event-Snap - ${process.env.NODE_ENV}`)
+    .setDescription('Back-end do Projeto Event-Snap')
     .setVersion(version)
     .addBearerAuth()
     .build();

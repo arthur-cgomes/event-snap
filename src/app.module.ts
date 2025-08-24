@@ -8,7 +8,6 @@ import { HealthCheckModule } from './health-check/health-check.module';
 import { QrcodeModule } from './qrcode/qrcode.module';
 import { UploadModule } from './upload/upload.module';
 import { UserModule } from './user/user.module';
-
 config();
 
 @Module({

@@ -26,7 +26,7 @@ export class AuthController {
     private userService: UserService,
   ) {}
 
-  @Post()
+  @Post('login')
   @ApiOperation({
     summary: 'Autenticação do usuário',
   })
@@ -41,9 +41,7 @@ export class AuthController {
   async requestSignup(@Body('email') email: string) {
     const existing = await this.userService.findByEmail(email);
     if (existing) throw new ConflictException('email already registered');
-    await this.authService.generateAndSendCode(email, 'signup');
-
-    return { message: 'code sent to email' };
+    return await this.authService.generateAndSendCode(email, 'signup');
   }
 
   @Post('confirm-signup')
@@ -70,9 +68,7 @@ export class AuthController {
   async requestReset(@Body('email') email: string) {
     const user = await this.userService.findByEmail(email);
     if (!user) throw new NotFoundException('user not found');
-    await this.authService.generateAndSendCode(email, 'reset');
-
-    return { message: 'code sent to email' };
+    return await this.authService.generateAndSendCode(email, 'reset');
   }
 
   @Post('confirm-reset')

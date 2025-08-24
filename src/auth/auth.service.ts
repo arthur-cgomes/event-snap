@@ -77,21 +77,22 @@ export class AuthService {
 
     await this.redis.set(key, code, 'EX', ttl);
 
-    const subjectMap = {
-      signup: 'Código de verificação para cadastro',
-      reset: 'Código para redefinição de senha',
-      update: 'Código para atualizar seus dados',
-    };
+    // const subjectMap = {
+    //   signup: 'Código de verificação para cadastro',
+    //   reset: 'Código para redefinição de senha',
+    //   update: 'Código para atualizar seus dados',
+    // };
 
-    const subject = subjectMap[purpose];
-    const text = `Seu código de verificação é: ${code}`;
-    const html = `<p>Olá!</p><p>Seu código de verificação é: <strong>${code}</strong></p><p>Este código expira em 10 minutos.</p>`;
+    // Comentado até que o serviço de email esteja implementado
+    // const subject = subjectMap[purpose];
+    // const text = `Seu código de verificação é: ${code}`;
+    // const html = `<p>Olá!</p><p>Seu código de verificação é: <strong>${code}</strong></p><p>Este código expira em 10 minutos.</p>`;
 
-    await this.emailService.sendEmail(email, subject, text, html);
+    //await this.emailService.sendEmail(email, subject, text, html);
 
     console.log('code =>', code);
-
-    return { message: 'code sent successfully' };
+    return { message: `code sent successfully: ${code}` };
+    //return { message: `code sent successfully` };
   }
 
   async validateCode(
