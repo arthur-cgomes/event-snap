@@ -1,5 +1,5 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindManyOptions, ILike, Repository } from 'typeorm';
 import {
   BadRequestException,
   Injectable,
@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { UserService } from '../user/user.service';
 import { fromZonedTime } from 'date-fns-tz';
 import { isValid } from 'date-fns';
+import { GetAllResponseDto } from '../common/dto/get-all.dto';
 
 @Injectable()
 export class QrcodeService {
@@ -84,5 +85,46 @@ export class QrcodeService {
     }
 
     return qrcode;
+  }
+
+  public async getAllQrCodes(
+    take: number,
+    skip: number,
+    search: string,
+    sort: string,
+    order: 'ASC' | 'DESC',
+    userId?: string,
+  ): Promise<GetAllResponseDto<QrCode>> {
+    const conditions: FindManyOptions<QrCode> = {
+      take,
+      skip,
+      order: {
+        [sort]: order,
+      },
+      relations: ['user'],
+    };
+
+    if (search) {
+      conditions.where = {
+        eventName: ILike(`%${search}%`),
+      };
+    }
+
+    if (userId) {
+      conditions.where = {
+        ...(conditions.where as object),
+        user: { id: userId } as any,
+      };
+    }
+
+    const [items, count] = await this.qrCodeRepository.findAndCount(conditions);
+
+    if (items.length == 0) {
+      return { skip: null, total: 0, items };
+    }
+    const over = count - Number(take) - Number(skip);
+    skip = over <= 0 ? null : Number(skip) + Number(take);
+
+    return { skip, total: count, items };
   }
 }
