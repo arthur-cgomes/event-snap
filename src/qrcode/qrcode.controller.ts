@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -11,6 +20,7 @@ import { CreateQrcodeDto } from './dto/create-qrcode.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { GetAllResponseDto } from 'src/common/dto/get-all.dto';
 import { QrCode } from './entity/qrcode.entity';
+import { UpdateQrcodeDto } from './dto/update-qrcode.dto';
 
 @ApiBearerAuth()
 @ApiTags('QRCode')
@@ -23,6 +33,18 @@ export class QrcodeController {
   @ApiOperation({ summary: 'Cria um novo QR code' })
   async createQrCode(@Body() createQrcodeDto: CreateQrcodeDto) {
     return await this.qrcodeService.createQrCode(createQrcodeDto);
+  }
+
+  @UseGuards(AuthGuard())
+  @Put('/:qrCodeId')
+  @ApiOperation({
+    summary: 'Atualiza um QR code pelo ID',
+  })
+  async updateUser(
+    @Param('qrCodeId') qrCodeId: string,
+    @Body() updateQrcodeDto: UpdateQrcodeDto,
+  ) {
+    return await this.qrcodeService.updateQrCode(qrCodeId, updateQrcodeDto);
   }
 
   @Get()

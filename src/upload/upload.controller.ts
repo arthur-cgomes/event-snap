@@ -62,7 +62,7 @@ export class UploadController {
 
   @Get('files/storage/:token')
   @ApiOperation({
-    summary: 'Listar URLs válidas dos arquivos do token (Supabase)',
+    summary: 'Listar URLs válidas dos arquivos do token',
   })
   @ApiQuery({ name: 'userId', required: true, type: String })
   @ApiOkResponse({ schema: { type: 'array', items: { type: 'string' } } })

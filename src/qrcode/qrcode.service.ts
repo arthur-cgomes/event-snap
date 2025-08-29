@@ -13,6 +13,7 @@ import { UserService } from '../user/user.service';
 import { fromZonedTime } from 'date-fns-tz';
 import { isValid } from 'date-fns';
 import { GetAllResponseDto } from '../common/dto/get-all.dto';
+import { UpdateQrcodeDto } from './dto/update-qrcode.dto';
 
 @Injectable()
 export class QrcodeService {
@@ -41,7 +42,7 @@ export class QrcodeService {
     });
 
     const savedQrCode = await this.qrCodeRepository.save(qrCode);
-    const qrData = `https://eventsnap.com/upload/${token}`;
+    const qrData = `https://event-snap-production.up.railway.app/${token}`;
     const qrCodeImage = await QRCode.toDataURL(qrData);
 
     return { qrCode: savedQrCode, qrCodeImage };
@@ -72,6 +73,48 @@ export class QrcodeService {
     }
 
     return candidate;
+  }
+
+  async updateQrCode(
+    qrCodeId: string,
+    updateQrcodeDto: UpdateQrcodeDto,
+  ): Promise<QrCode> {
+    const qrcode = await this.getQrCodeById(qrCodeId);
+
+    if (typeof updateQrcodeDto.eventName === 'string') {
+      qrcode.eventName = updateQrcodeDto.eventName;
+    }
+
+    if (typeof updateQrcodeDto.descriptionEvent === 'string') {
+      qrcode.descriptionEvent = updateQrcodeDto.descriptionEvent;
+    }
+
+    if (
+      updateQrcodeDto.expirationDate !== undefined &&
+      updateQrcodeDto.expirationDate !== null
+    ) {
+      const candidate = this.resolveExpirationDate(
+        updateQrcodeDto.expirationDate,
+      );
+      if (candidate) {
+        qrcode.expirationDate = candidate;
+      }
+    }
+
+    return await this.qrCodeRepository.save(qrcode);
+  }
+
+  async getQrCodeById(qrCodeId: string): Promise<QrCode> {
+    const qrcode = await this.qrCodeRepository.findOne({
+      where: { id: qrCodeId },
+      relations: ['user'],
+    });
+
+    if (!qrcode) {
+      throw new NotFoundException('qrcode not found');
+    }
+
+    return qrcode;
   }
 
   async getQrCodeByToken(token: string): Promise<QrCode> {

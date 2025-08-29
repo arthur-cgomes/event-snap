@@ -16,5 +16,8 @@ export default new DataSource({
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/../migrations/**/*{.ts,.js}'],
   synchronize: false,
-  ssl: configService.get('TYPEORM_SSL') === 'false' ? false : { rejectUnauthorized: false },
+  ssl:
+    configService.get('TYPEORM_SSL') === 'false'
+      ? false
+      : { rejectUnauthorized: false },
 });
