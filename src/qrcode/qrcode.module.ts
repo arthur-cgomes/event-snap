@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { QrcodeService } from './qrcode.service';
 import { QrcodeController } from './qrcode.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -10,7 +10,7 @@ import { UserModule } from '../user/user.module';
   imports: [
     TypeOrmModule.forFeature([QrCode]),
     PassportModule.register({ defaultStrategy: 'jwt', session: false }),
-    UserModule,
+    forwardRef(() => UserModule),
   ],
   providers: [QrcodeService],
   controllers: [QrcodeController],

@@ -1,7 +1,9 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindManyOptions, ILike, Repository } from 'typeorm';
+import { FindManyOptions, ILike, In, Repository } from 'typeorm';
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -20,6 +22,7 @@ export class QrcodeService {
   constructor(
     @InjectRepository(QrCode)
     private readonly qrCodeRepository: Repository<QrCode>,
+    @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
   ) {}
 
@@ -130,7 +133,7 @@ export class QrcodeService {
     return qrcode;
   }
 
-  public async getAllQrCodes(
+  async getAllQrCodes(
     take: number,
     skip: number,
     search: string,
@@ -169,5 +172,43 @@ export class QrcodeService {
     skip = over <= 0 ? null : Number(skip) + Number(take);
 
     return { skip, total: count, items };
+  }
+
+  async getUsersQrStatusCounts(userIds: string[]): Promise<{
+    active: number;
+    expired: number;
+    none: number;
+  }> {
+    const ids = Array.from(new Set((userIds || []).filter(Boolean)));
+    if (ids.length === 0) return { active: 0, expired: 0, none: 0 };
+
+    const qrcodes = await this.qrCodeRepository.find({
+      where: { user: { id: In(ids) } },
+      relations: ['user'],
+    });
+
+    const now = Date.now();
+    const status = new Map<string, { any: boolean; active: boolean }>();
+    for (const id of ids) status.set(id, { any: false, active: false });
+
+    for (const qr of qrcodes) {
+      const uid = (qr.user as any).id;
+      const rec = status.get(uid);
+      if (!rec) continue;
+      rec.any = true;
+      if (qr.expirationDate && qr.expirationDate.getTime() > now)
+        rec.active = true;
+    }
+
+    let active = 0,
+      expired = 0,
+      none = 0;
+    for (const rec of status.values()) {
+      if (rec.active) active++;
+      else if (rec.any) expired++;
+      else none++;
+    }
+
+    return { active, expired, none };
   }
 }

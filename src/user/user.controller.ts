@@ -20,6 +20,7 @@ import { GetAllResponseDto } from '../common/dto/get-all.dto';
 import { UserDto } from './dto/user.dto';
 import { User } from './entity/user.entity';
 import { UserService } from './user.service';
+import { DashAdminQueryDto } from './dto/get-dashboard.dto';
 
 @ApiBearerAuth()
 @ApiTags('User')
@@ -35,6 +36,15 @@ export class UserController {
   @ApiNotFoundResponse({ description: 'Usuário não encontrado' })
   async getUserById(@Param('userId') userId: string) {
     return await this.userService.getUserById(userId);
+  }
+
+  @Get('/admin/dash')
+  @ApiOperation({
+    summary: 'Retorna dados do dashboard administrativo',
+  })
+  async getDash(@Query() q: DashAdminQueryDto) {
+    const { start, end, tz } = q;
+    return this.userService.getDashAdmin({ start, end, tz });
   }
 
   @Get()
