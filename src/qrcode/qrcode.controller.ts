@@ -3,8 +3,8 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
-  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -36,7 +36,7 @@ export class QrcodeController {
   }
 
   @UseGuards(AuthGuard())
-  @Put('/:qrCodeId')
+  @Patch('/:qrCodeId')
   @ApiOperation({
     summary: 'Atualiza um QR code pelo ID',
   })
