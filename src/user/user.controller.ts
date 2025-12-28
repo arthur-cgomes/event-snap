@@ -38,15 +38,6 @@ export class UserController {
     return await this.userService.getUserById(userId);
   }
 
-  @Get('/admin/dash')
-  @ApiOperation({
-    summary: 'Retorna dados do dashboard administrativo',
-  })
-  async getDash(@Query() q: DashAdminQueryDto) {
-    const { start, end, tz } = q;
-    return this.userService.getDashAdmin({ start, end, tz });
-  }
-
   @Get()
   @ApiOperation({
     summary: 'Busca todos os usuários',
@@ -76,5 +67,83 @@ export class UserController {
   @ApiNotFoundResponse({ description: 'Usuário não encontrado' })
   async deleteUser(@Param('userId') userId: string) {
     return { message: await this.userService.deleteUser(userId) };
+  }
+
+  @Get('/admin/dash')
+  @ApiOperation({
+    summary: 'Retorna dados do dashboard administrativo',
+  })
+  async getDash(@Query() q: DashAdminQueryDto) {
+    const { start, end, tz } = q;
+    return this.userService.getDashAdmin({ start, end, tz });
+  }
+
+  @Get('/admin/dash/created-users')
+  @ApiOperation({ summary: 'Retorna usuários criados (paginado)' })
+  @ApiQuery({ name: 'take', required: false })
+  @ApiQuery({ name: 'skip', required: false })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'sort', required: false })
+  @ApiQuery({ name: 'order', required: false })
+  async getUsersCreatedDashAdmin(
+    @Query('take') take = 10,
+    @Query('skip') skip = 0,
+    @Query('search') search: string,
+    @Query('sort') sort: string = 'createdAt',
+    @Query('order') order: 'ASC' | 'DESC' = 'DESC',
+  ) {
+    return this.userService.getUsersCreatedDashAdmin(
+      take,
+      skip,
+      search,
+      sort,
+      order,
+    );
+  }
+
+  @Get('/admin/dash/active-users')
+  @ApiOperation({ summary: 'Retorna usuários ativos recentes (paginado)' })
+  @ApiQuery({ name: 'take', required: false })
+  @ApiQuery({ name: 'skip', required: false })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'sort', required: false })
+  @ApiQuery({ name: 'order', required: false })
+  async getUsersActiveDashAdmin(
+    @Query('take') take = 10,
+    @Query('skip') skip = 0,
+    @Query('search') search: string,
+    @Query('sort') sort: string = 'lastLogin',
+    @Query('order') order: 'ASC' | 'DESC' = 'DESC',
+  ) {
+    return this.userService.getUsersActiveDashAdmin(
+      take,
+      skip,
+      search,
+      sort,
+      order,
+    );
+  }
+
+  @Get('/admin/dash/inactive-users')
+  @ApiOperation({ summary: 'Retorna usuários inativos (paginado)' })
+  @ApiQuery({ name: 'take', required: false })
+  @ApiQuery({ name: 'skip', required: false })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'sort', required: false })
+  @ApiQuery({ name: 'order', required: false })
+  async getUsersInactiveDashAdmin(
+    @Query('take') take = 10,
+    @Query('skip') skip = 0,
+    @Query('search') search: string,
+    @Query('sort') sort: string = 'lastLogin',
+    @Query('order') order: 'ASC' | 'DESC' = 'ASC',
+  ) {
+    return this.userService.getUsersInactiveDashAdmin(
+      take,
+      skip,
+      search,
+      sort,
+      order,
+    );
   }
 }

@@ -9,6 +9,7 @@ export type UsersCountParams = {
 export type UsersCountResponse = {
   usersCreated: number;
   usersLoggedIn: number;
+  usersInactive: number;
   window: { from: Date; to: Date; tz: string };
 };
 
