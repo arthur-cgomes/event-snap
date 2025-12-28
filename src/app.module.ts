@@ -33,6 +33,5 @@ config();
     EmailModule,
     QrcodeModule,
   ],
-  providers: [],
 })
 export class AppModule {}
