@@ -93,9 +93,9 @@ export class QrcodeService {
     return await this.qrCodeRepository.save(qrcode);
   }
 
-  async getQrCodeById(qrCodeId: string): Promise<QrCode> {
+  async getQrCodeById(idOrToken: string): Promise<QrCode> {
     const qrcode = await this.qrCodeRepository.findOne({
-      where: { id: qrCodeId },
+      where: [{ id: idOrToken }, { token: idOrToken }],
       relations: ['user'],
     });
 
