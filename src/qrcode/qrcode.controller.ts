@@ -75,4 +75,30 @@ export class QrcodeController {
       userId,
     );
   }
+
+  @Get('/by-status')
+  @ApiOperation({
+    summary: 'Busca todos os qr codes por status (ativos ou expirados)',
+  })
+  @ApiQuery({ name: 'take', required: false })
+  @ApiQuery({ name: 'skip', required: false })
+  @ApiQuery({ name: 'status', required: true })
+  @ApiQuery({ name: 'sort', required: false })
+  @ApiQuery({ name: 'order', required: false })
+  @ApiOkResponse({ type: GetAllResponseDto<QrCode> })
+  async getQrCodesByStatus(
+    @Query('take') take = 10,
+    @Query('skip') skip = 0,
+    @Query('status') status: 'active' | 'expired' = 'active',
+    @Query('sort') sort: string = 'createdAt',
+    @Query('order') order: 'ASC' | 'DESC' = 'ASC',
+  ) {
+    return await this.qrcodeService.getQrCodesByStatus(
+      take,
+      skip,
+      status,
+      sort,
+      order,
+    );
+  }
 }

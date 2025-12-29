@@ -1,5 +1,13 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindManyOptions, ILike, In, Repository } from 'typeorm';
+import {
+  FindManyOptions,
+  FindOptionsWhere,
+  ILike,
+  In,
+  LessThanOrEqual,
+  MoreThan,
+  Repository,
+} from 'typeorm';
 import {
   BadRequestException,
   forwardRef,
@@ -183,6 +191,60 @@ export class QrcodeService {
     }
 
     return { active, expired, none };
+  }
+
+  async getQrCodesByStatus(
+    take: number,
+    skip: number,
+    status: 'active' | 'expired',
+    sort: string,
+    order: 'ASC' | 'DESC',
+  ): Promise<GetAllResponseDto<QrCode>> {
+    const now = new Date();
+
+    const dateCondition =
+      status === 'active' ? MoreThan(now) : LessThanOrEqual(now);
+
+    const where: FindOptionsWhere<QrCode> = {
+      expirationDate: dateCondition,
+    };
+
+    const conditions: FindManyOptions<QrCode> = {
+      take,
+      skip,
+      order: {
+        [sort]: order,
+      },
+      relations: ['user'],
+      where: where,
+      select: {
+        id: true,
+        createdAt: true,
+        active: true,
+        token: true,
+        eventName: true,
+        descriptionEvent: true,
+        expirationDate: true,
+        user: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          lastLogin: true,
+        },
+      },
+    };
+
+    const [items, count] = await this.qrCodeRepository.findAndCount(conditions);
+
+    if (items.length === 0) {
+      return { skip: null, total: 0, items };
+    }
+
+    const over = count - Number(take) - Number(skip);
+    const nextSkip = over <= 0 ? null : Number(skip) + Number(take);
+
+    return { skip: nextSkip, total: count, items };
   }
 
   private resolveExpirationDate(

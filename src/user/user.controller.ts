@@ -101,49 +101,41 @@ export class UserController {
     );
   }
 
-  @Get('/admin/dash/active-users')
+  @Get('/admin/dash/status-users')
   @ApiOperation({ summary: 'Retorna usuários ativos recentes (paginado)' })
   @ApiQuery({ name: 'take', required: false })
   @ApiQuery({ name: 'skip', required: false })
-  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'status', required: true })
   @ApiQuery({ name: 'sort', required: false })
   @ApiQuery({ name: 'order', required: false })
-  async getUsersActiveDashAdmin(
+  async getUsersByStatusDashAdmin(
     @Query('take') take = 10,
     @Query('skip') skip = 0,
-    @Query('search') search: string,
+    @Query('status') status: 'active' | 'inactive' = 'active',
     @Query('sort') sort: string = 'lastLogin',
     @Query('order') order: 'ASC' | 'DESC' = 'DESC',
   ) {
-    return this.userService.getUsersActiveDashAdmin(
+    return this.userService.getUsersByStatusDashAdmin(
       take,
       skip,
-      search,
+      status,
       sort,
       order,
     );
   }
 
-  @Get('/admin/dash/inactive-users')
-  @ApiOperation({ summary: 'Retorna usuários inativos (paginado)' })
+  @Get('/admin/dash/without-qrcodes')
+  @ApiOperation({ summary: 'Retorna usuários sem QR codes (paginado)' })
   @ApiQuery({ name: 'take', required: false })
   @ApiQuery({ name: 'skip', required: false })
-  @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'sort', required: false })
   @ApiQuery({ name: 'order', required: false })
-  async getUsersInactiveDashAdmin(
+  async getUsersWithoutQrCodes(
     @Query('take') take = 10,
     @Query('skip') skip = 0,
-    @Query('search') search: string,
     @Query('sort') sort: string = 'lastLogin',
     @Query('order') order: 'ASC' | 'DESC' = 'ASC',
   ) {
-    return this.userService.getUsersInactiveDashAdmin(
-      take,
-      skip,
-      search,
-      sort,
-      order,
-    );
+    return this.userService.getUsersWithoutQrCodes(take, skip, sort, order);
   }
 }

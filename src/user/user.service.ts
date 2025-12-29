@@ -10,9 +10,11 @@ import { User } from './entity/user.entity';
 import {
   Between,
   FindManyOptions,
+  FindOptionsWhere,
   ILike,
   IsNull,
   LessThan,
+  MoreThanOrEqual,
   Repository,
 } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -245,22 +247,32 @@ export class UserService {
     return this.formatPaginationResponse(items, count, take, skip);
   }
 
-  async getUsersActiveDashAdmin(
+  async getUsersByStatusDashAdmin(
     take: number,
     skip: number,
-    search: string,
+    status: 'active' | 'inactive',
     sort: string,
     order: 'ASC' | 'DESC',
   ) {
-    const { fromUtc, toUtc } = this.buildUtcRange();
+    const { fromUtc } = this.buildUtcRange();
+    let where: FindOptionsWhere<User> | FindOptionsWhere<User>[];
 
-    const where: any = {
-      userType: UserType.USER,
-      lastLogin: Between(fromUtc, toUtc),
-    };
+    if (status === 'active') {
+      where = {
+        userType: UserType.USER,
+        lastLogin: MoreThanOrEqual(fromUtc),
+      };
+    } else {
+      const conditionExp = {
+        userType: UserType.USER,
+        lastLogin: LessThan(fromUtc),
+      };
+      const conditionNull = {
+        userType: UserType.USER,
+        lastLogin: IsNull(),
+      };
 
-    if (search) {
-      where.name = ILike(`%${search}%`);
+      where = [conditionExp, conditionNull];
     }
 
     const [items, count] = await this.userRepository.findAndCount({
@@ -285,42 +297,32 @@ export class UserService {
     return this.formatPaginationResponse(items, count, take, skip);
   }
 
-  async getUsersInactiveDashAdmin(
+  async getUsersWithoutQrCodes(
     take: number,
     skip: number,
-    search: string,
     sort: string,
     order: 'ASC' | 'DESC',
-  ) {
-    const { fromUtc } = this.buildUtcRange();
-
-    const conditionExp = {
-      userType: UserType.USER,
-      lastLogin: LessThan(fromUtc),
+  ): Promise<GetAllResponseDto<User>> {
+    const where: FindOptionsWhere<User> = {
+      qrCodes: {
+        id: IsNull(),
+      },
     };
-    const conditionNull = { userType: UserType.USER, lastLogin: IsNull() };
-
-    if (search) {
-      Object.assign(conditionExp, { name: ILike(`%${search}%`) });
-      Object.assign(conditionNull, { name: ILike(`%${search}%`) });
-    }
 
     const [items, count] = await this.userRepository.findAndCount({
       take,
       skip,
-      where: [conditionExp, conditionNull],
+      where,
+      order: {
+        [sort]: order,
+      },
+      relations: ['qrCodes'],
       select: {
         id: true,
-        createdAt: true,
         name: true,
         email: true,
         phone: true,
-        createdBy: true,
-        createdById: true,
         lastLogin: true,
-      },
-      order: {
-        [sort]: order,
       },
     });
 

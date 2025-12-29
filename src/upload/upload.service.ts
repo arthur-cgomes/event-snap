@@ -83,13 +83,6 @@ export class UploadService {
   }
 
   async getFileUrlsByToken(qrToken: string, userId: string): Promise<string[]> {
-    console.log(
-      'getFileUrlsByToken',
-      'qrToken =>',
-      qrToken,
-      'userId =>',
-      userId,
-    );
     const qrCode = await this.qrCodeService.getQrCodeByToken(qrToken);
 
     if (!qrCode) {
