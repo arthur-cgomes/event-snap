@@ -51,33 +51,6 @@ export class QrcodeService {
     return { qrCode: savedQrCode, qrCodeImage };
   }
 
-  private resolveExpirationDate(
-    expirationDate: string | Date | null | undefined,
-  ): Date | undefined {
-    if (expirationDate === null || expirationDate === undefined)
-      return undefined;
-
-    const TZ = 'America/Sao_Paulo';
-    let candidate: Date;
-
-    if (typeof expirationDate === 'string') {
-      candidate = fromZonedTime(expirationDate, TZ);
-    } else if (expirationDate instanceof Date) {
-      candidate = expirationDate;
-    } else {
-      throw new BadRequestException('invalid expirationDate');
-    }
-
-    if (!isValid(candidate)) {
-      throw new BadRequestException('invalid expirationDate');
-    }
-    if (candidate.getTime() <= Date.now()) {
-      throw new BadRequestException('expirationDate must be in the future');
-    }
-
-    return candidate;
-  }
-
   async updateQrCode(
     qrCodeId: string,
     updateQrcodeDto: UpdateQrcodeDto,
@@ -110,19 +83,6 @@ export class QrcodeService {
   async getQrCodeById(qrCodeId: string): Promise<QrCode> {
     const qrcode = await this.qrCodeRepository.findOne({
       where: { id: qrCodeId },
-      relations: ['user'],
-    });
-
-    if (!qrcode) {
-      throw new NotFoundException('qrcode not found');
-    }
-
-    return qrcode;
-  }
-
-  async getQrCodeByToken(token: string): Promise<QrCode> {
-    const qrcode = await this.qrCodeRepository.findOne({
-      where: { token },
       relations: ['user'],
     });
 
@@ -174,6 +134,19 @@ export class QrcodeService {
     return { skip, total: count, items };
   }
 
+  async getQrCodeByToken(token: string): Promise<QrCode> {
+    const qrcode = await this.qrCodeRepository.findOne({
+      where: { token },
+      relations: ['user'],
+    });
+
+    if (!qrcode) {
+      throw new NotFoundException('qrcode not found');
+    }
+
+    return qrcode;
+  }
+
   async getUsersQrStatusCounts(userIds: string[]): Promise<{
     active: number;
     expired: number;
@@ -210,5 +183,32 @@ export class QrcodeService {
     }
 
     return { active, expired, none };
+  }
+
+  private resolveExpirationDate(
+    expirationDate: string | Date | null | undefined,
+  ): Date | undefined {
+    if (expirationDate === null || expirationDate === undefined)
+      return undefined;
+
+    const TZ = 'America/Sao_Paulo';
+    let candidate: Date;
+
+    if (typeof expirationDate === 'string') {
+      candidate = fromZonedTime(expirationDate, TZ);
+    } else if (expirationDate instanceof Date) {
+      candidate = expirationDate;
+    } else {
+      throw new BadRequestException('invalid expirationDate');
+    }
+
+    if (!isValid(candidate)) {
+      throw new BadRequestException('invalid expirationDate');
+    }
+    if (candidate.getTime() <= Date.now()) {
+      throw new BadRequestException('expirationDate must be in the future');
+    }
+
+    return candidate;
   }
 }
