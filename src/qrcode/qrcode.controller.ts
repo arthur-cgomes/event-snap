@@ -76,6 +76,15 @@ export class QrcodeController {
     );
   }
 
+  @Get('/:id')
+  @ApiOperation({
+    summary: 'Busca um qr code pelo ID ou token',
+  })
+  @ApiOkResponse({ type: QrCode })
+  async getQrCodeByIdOrToken(@Param('id') id: string) {
+    return await this.qrcodeService.getQrCodeByIdOrToken(id);
+  }
+
   @Get('/admin/by-status')
   @ApiOperation({
     summary: 'Busca todos os qr codes por status (ativos ou expirados)',

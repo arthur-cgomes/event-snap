@@ -95,12 +95,25 @@ export class QrcodeService {
 
   async getQrCodeById(idOrToken: string): Promise<QrCode> {
     const qrcode = await this.qrCodeRepository.findOne({
-      where: [{ id: idOrToken }, { token: idOrToken }],
+      where: { id: idOrToken },
       relations: ['user'],
     });
 
     if (!qrcode) {
       throw new NotFoundException('qrcode not found');
+    }
+
+    return qrcode;
+  }
+
+  async getQrCodeByIdOrToken(idOrToken: string): Promise<QrCode> {
+    const qrcode = await this.qrCodeRepository.findOne({
+      where: [{ id: idOrToken }, { token: idOrToken }],
+      relations: ['user'],
+    });
+
+    if (!qrcode) {
+      throw new NotFoundException('Evento não encontrado (QR Code inválido).');
     }
 
     return qrcode;
