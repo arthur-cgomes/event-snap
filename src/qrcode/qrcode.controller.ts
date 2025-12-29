@@ -76,7 +76,7 @@ export class QrcodeController {
     );
   }
 
-  @Get('/by-status')
+  @Get('/admin/by-status')
   @ApiOperation({
     summary: 'Busca todos os qr codes por status (ativos ou expirados)',
   })

@@ -307,6 +307,7 @@ export class UserService {
       qrCodes: {
         id: IsNull(),
       },
+      userType: UserType.USER,
     };
 
     const [items, count] = await this.userRepository.findAndCount({
