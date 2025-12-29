@@ -169,26 +169,23 @@ export class QrcodeService {
     });
 
     const now = Date.now();
-    const status = new Map<string, { any: boolean; active: boolean }>();
-    for (const id of ids) status.set(id, { any: false, active: false });
+    let active = 0;
+    let expired = 0;
+    const usersWithQr = new Set<string>();
 
     for (const qr of qrcodes) {
-      const uid = (qr.user as any).id;
-      const rec = status.get(uid);
-      if (!rec) continue;
-      rec.any = true;
-      if (qr.expirationDate && qr.expirationDate.getTime() > now)
-        rec.active = true;
+      if (qr.user) {
+        usersWithQr.add((qr.user as any).id);
+      }
+
+      if (qr.expirationDate && qr.expirationDate.getTime() > now) {
+        active++;
+      } else {
+        expired++;
+      }
     }
 
-    let active = 0,
-      expired = 0,
-      none = 0;
-    for (const rec of status.values()) {
-      if (rec.active) active++;
-      else if (rec.any) expired++;
-      else none++;
-    }
+    const none = ids.length - usersWithQr.size;
 
     return { active, expired, none };
   }
