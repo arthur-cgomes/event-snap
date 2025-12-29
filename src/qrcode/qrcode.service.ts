@@ -53,7 +53,12 @@ export class QrcodeService {
     });
 
     const savedQrCode = await this.qrCodeRepository.save(qrCode);
-    const qrData = `https://event-snap-production.up.railway.app/${token}`;
+
+    const frontendUrl =
+      process.env.FRONTEND_URL ||
+      'https://event-snap-front-end-production.up.railway.app';
+    const qrData = `${frontendUrl}/#/event/${token}`;
+
     const qrCodeImage = await QRCode.toDataURL(qrData);
 
     return { qrCode: savedQrCode, qrCodeImage };
