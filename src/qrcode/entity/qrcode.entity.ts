@@ -30,12 +30,14 @@ export class QrCode extends BaseCollection {
 
   @ApiProperty({
     description: 'Relação com o usuário',
+    type: () => User,
   })
   @ManyToOne(() => User, (user) => user.qrCodes)
   user: User;
 
   @ApiProperty({
     description: 'Relação com o upload',
+    type: () => [Upload],
   })
   @OneToMany(() => Upload, (upload) => upload.qrCode)
   uploads: Upload[];

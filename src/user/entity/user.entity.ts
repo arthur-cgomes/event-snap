@@ -71,6 +71,10 @@ export class User extends BaseCollection {
   @Column({ type: 'timestamp', nullable: true, default: null })
   lastLogin?: Date;
 
+  @ApiProperty({
+    description: 'Lista de QR Codes do usuário',
+    type: () => [QrCode],
+  })
   @OneToMany(() => QrCode, (qrCode) => qrCode.user)
   qrCodes: QrCode[];
 

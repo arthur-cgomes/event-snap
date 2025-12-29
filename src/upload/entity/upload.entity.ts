@@ -9,7 +9,7 @@ export class Upload extends BaseCollection {
   @Column()
   imageUrl: string;
 
-  @ApiProperty({ description: 'QR code relacionado' })
+  @ApiProperty({ description: 'QR code relacionado', type: () => QrCode })
   @ManyToOne(() => QrCode, (qrCode) => qrCode.uploads)
   qrCode: QrCode;
 }
