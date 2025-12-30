@@ -47,6 +47,15 @@ export class QrcodeController {
     return await this.qrcodeService.updateQrCode(qrCodeId, updateQrcodeDto);
   }
 
+  @Get('/:id')
+  @ApiOperation({
+    summary: 'Busca um qr code pelo ID ou token',
+  })
+  @ApiOkResponse({ type: QrCode })
+  async getQrCodeByIdOrToken(@Param('id') id: string) {
+    return await this.qrcodeService.getQrCodeByIdOrToken(id);
+  }
+
   @Get()
   @ApiOperation({
     summary: 'Busca todos os qr codes',
@@ -74,15 +83,6 @@ export class QrcodeController {
       order,
       userId,
     );
-  }
-
-  @Get('/:id')
-  @ApiOperation({
-    summary: 'Busca um qr code pelo ID ou token',
-  })
-  @ApiOkResponse({ type: QrCode })
-  async getQrCodeByIdOrToken(@Param('id') id: string) {
-    return await this.qrcodeService.getQrCodeByIdOrToken(id);
   }
 
   @Get('/admin/by-status')

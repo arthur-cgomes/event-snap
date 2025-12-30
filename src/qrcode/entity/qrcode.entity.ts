@@ -15,14 +15,21 @@ export class QrCode extends BaseCollection {
 
   @ApiProperty({ type: String, description: 'Nome do evento' })
   @Column({ type: 'varchar', nullable: true, default: null })
-  eventName?: string;
+  eventName: string;
 
   @ApiProperty({
     type: String,
     description: 'Descrição do evento',
   })
   @Column({ type: 'varchar', nullable: true, default: null })
-  descriptionEvent?: string;
+  descriptionEvent: string;
+
+  @ApiProperty({
+    type: String,
+    description: 'Cor referência ao evento',
+  })
+  @Column({ type: 'varchar', nullable: true, default: null })
+  eventColor: string;
 
   @ApiProperty({ type: Date, description: 'Data de expiração do QR code' })
   @Column({ type: 'timestamp' })

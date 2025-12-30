@@ -3,6 +3,7 @@ import {
   BaseEntity,
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -27,4 +28,8 @@ export abstract class BaseCollection extends BaseEntity {
   @ApiProperty({ type: Boolean })
   @Column({ type: 'bool', name: 'active', default: true })
   active: boolean;
+
+  @ApiProperty({ type: Date })
+  @DeleteDateColumn({ type: 'timestamp', nullable: true, default: null })
+  deletedAt: Date;
 }

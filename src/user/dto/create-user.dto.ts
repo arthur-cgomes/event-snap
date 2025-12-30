@@ -27,6 +27,14 @@ export class CreateUserDto {
 
   @ApiProperty({
     type: String,
+    description: 'Data de nascimento do usuário',
+  })
+  @IsNotEmpty()
+  @IsString()
+  dateOfBirth: string;
+
+  @ApiProperty({
+    type: String,
     description: 'Email do usuário',
   })
   @IsNotEmpty()

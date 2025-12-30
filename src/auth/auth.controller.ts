@@ -49,11 +49,12 @@ export class AuthController {
     summary: 'Cadastro de usuário',
   })
   async confirmSignup(@Body() dto: ConfirmSignupDto) {
-    const { name, phone, email, password, code } = dto;
+    const { name, phone, dateOfBirth, email, password, code } = dto;
     await this.authService.validateCode(email, code, 'signup');
     const createdUser = await this.userService.createUser({
       name,
       phone,
+      dateOfBirth,
       email,
       password,
     });

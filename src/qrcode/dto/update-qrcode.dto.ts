@@ -18,4 +18,9 @@ export class UpdateQrcodeDto {
   @IsOptional()
   @IsString()
   descriptionEvent?: string;
+
+  @ApiProperty({ type: String, description: 'Cor referência ao evento' })
+  @IsOptional()
+  @IsString()
+  eventColor?: string;
 }

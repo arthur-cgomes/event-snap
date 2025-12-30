@@ -1,4 +1,4 @@
-## 📸 Event Snap
+## 📸 EventSnap
 
 Plataforma de gerenciamento de eventos que permite a geração de QR Codes personalizados e o upload de fotos por convidados, vinculadas diretamente a esses códigos.
 

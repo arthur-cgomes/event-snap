@@ -31,6 +31,13 @@ export class User extends BaseCollection {
 
   @ApiProperty({
     type: String,
+    description: 'Data de nascimento do usuário',
+  })
+  @Column({ type: 'varchar', nullable: true, default: null })
+  dateOfBirth: string;
+
+  @ApiProperty({
+    type: String,
     description: 'Email do usuário',
   })
   @Column({ type: 'varchar' })

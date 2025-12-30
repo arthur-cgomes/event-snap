@@ -1,8 +1,10 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
   Param,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -21,12 +23,38 @@ import { UserDto } from './dto/user.dto';
 import { User } from './entity/user.entity';
 import { UserService } from './user.service';
 import { DashAdminQueryDto } from './dto/get-dashboard.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @ApiBearerAuth()
 @ApiTags('User')
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @UseGuards(AuthGuard())
+  @Put('/:userId/update')
+  @ApiOperation({
+    summary: 'Atualiza um usuário',
+  })
+  @ApiOkResponse({ type: UserDto })
+  @ApiNotFoundResponse({ description: 'Usuário não encontrado' })
+  async updateUser(
+    @Param('userId') userId: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return await this.userService.updateUser(userId, updateUserDto);
+  }
+
+  @UseGuards(AuthGuard())
+  @Delete('/:userId/delete')
+  @ApiOperation({
+    summary: 'Exclui um usuário',
+  })
+  @ApiOkResponse({ type: DeleteResponseDto })
+  @ApiNotFoundResponse({ description: 'Usuário não encontrado' })
+  async deleteUser(@Param('userId') userId: string) {
+    return { message: await this.userService.deleteUser(userId) };
+  }
 
   @Get('/:userId')
   @ApiOperation({
@@ -56,17 +84,6 @@ export class UserController {
     @Query('order') order: 'ASC' | 'DESC' = 'ASC',
   ) {
     return await this.userService.getAllUsers(take, skip, search, sort, order);
-  }
-
-  @UseGuards(AuthGuard())
-  @Delete('/:userId')
-  @ApiOperation({
-    summary: 'Exclui um usuário',
-  })
-  @ApiOkResponse({ type: DeleteResponseDto })
-  @ApiNotFoundResponse({ description: 'Usuário não encontrado' })
-  async deleteUser(@Param('userId') userId: string) {
-    return { message: await this.userService.deleteUser(userId) };
   }
 
   @Get('/admin/dash')

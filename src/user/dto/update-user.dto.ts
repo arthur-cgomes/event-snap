@@ -20,6 +20,14 @@ export class UpdateUserDto {
 
   @ApiProperty({
     type: String,
+    description: 'Data de nascimento do usuário',
+  })
+  @IsOptional()
+  @IsString()
+  dateOfBirth?: string;
+
+  @ApiProperty({
+    type: String,
     description: 'Email do usuário',
   })
   @IsOptional()

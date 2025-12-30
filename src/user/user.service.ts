@@ -20,7 +20,11 @@ import {
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { GetAllResponseDto } from 'src/common/dto/get-all.dto';
-import { UsersCountParams, UsersCountResponse } from './dto/get-dashboard.dto';
+import {
+  AdminDashResponse,
+  UsersCountParams,
+  UsersCountResponse,
+} from './dto/get-dashboard.dto';
 import { endOfDay, startOfDay, subMonths } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { UserType } from '../common/enum/user-type.enum';
@@ -34,6 +38,7 @@ export class UserService {
     private readonly qrCodeService: QrcodeService,
   ) {}
 
+  // Used in AuthService
   async checkUserToLogin(email: string): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { email },
@@ -62,6 +67,11 @@ export class UserService {
     await this.userRepository.save(user);
   }
 
+  async findByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { email } });
+  }
+
+  // User Management
   async createUser(createUserDto: CreateUserDto): Promise<User> {
     const checkUser = await this.userRepository.findOne({
       where: { email: createUserDto.email },
@@ -133,25 +143,17 @@ export class UserService {
   }
 
   async deleteUser(userId: string): Promise<string> {
-    const user = await this.getUserById(userId);
-    await this.userRepository.remove(user);
+    await this.getUserById(userId);
+
+    await this.userRepository.update(userId, {
+      active: false,
+      deletedAt: new Date(),
+    });
 
     return 'removed';
   }
 
-  async findByEmail(email: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { email } });
-  }
-
-  async getDashAdmin(params?: UsersCountParams): Promise<{
-    usersCreated: number;
-    usersLoggedIn: number;
-    usersInactive: number;
-    qrcodeActive: number;
-    qrcodeExpired: number;
-    qrcodeNone: number;
-    window: { from: Date; to: Date; tz: string } | undefined;
-  }> {
+  async getDashAdmin(params?: UsersCountParams): Promise<AdminDashResponse> {
     const [usersRes, qrStats] = await Promise.all([
       this.getUsersCount(params).catch(() => undefined),
       this.getIdsUsers().catch(() => ({ active: 0, expired: 0, none: 0 })),

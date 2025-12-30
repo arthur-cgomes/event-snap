@@ -8,6 +8,7 @@ import { HealthCheckModule } from './health-check/health-check.module';
 import { QrcodeModule } from './qrcode/qrcode.module';
 import { UploadModule } from './upload/upload.module';
 import { UserModule } from './user/user.module';
+import { BannerModule } from './banner/banner.module';
 config();
 
 @Module({
@@ -32,6 +33,7 @@ config();
     UploadModule,
     EmailModule,
     QrcodeModule,
+    BannerModule,
   ],
 })
 export class AppModule {}

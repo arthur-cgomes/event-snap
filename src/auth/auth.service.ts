@@ -77,22 +77,40 @@ export class AuthService {
 
     await this.redis.set(key, code, 'EX', ttl);
 
-    // const subjectMap = {
-    //   signup: 'Código de verificação para cadastro',
-    //   reset: 'Código para redefinição de senha',
-    //   update: 'Código para atualizar seus dados',
-    // };
+    // Mapeamento de assuntos
+    const subjectMap = {
+      signup: 'EventSnap - Seu código de verificação',
+      reset: 'EventSnap - Redefinição de senha',
+      update: 'EventSnap - Atualização de dados',
+    };
 
-    // Comentado até que o serviço de email esteja implementado
-    // const subject = subjectMap[purpose];
-    // const text = `Seu código de verificação é: ${code}`;
-    // const html = `<p>Olá!</p><p>Seu código de verificação é: <strong>${code}</strong></p><p>Este código expira em 10 minutos.</p>`;
+    const subject = subjectMap[purpose];
+    const text = `Seu código de verificação é: ${code}. Válido por 10 minutos.`;
 
-    //await this.emailService.sendEmail(email, subject, text, html);
+    // HTML um pouco mais formatado
+    const html = `
+      <div style="font-family: Arial, sans-serif; color: #333;">
+        <h2>Olá!</h2>
+        <p>Você solicitou um código para <strong>${
+          purpose === 'signup'
+            ? 'cadastro'
+            : purpose === 'reset'
+              ? 'redefinir sua senha'
+              : 'atualizar seus dados'
+        }</strong>.</p>
+        <div style="background-color: #f4f4f4; padding: 10px; border-radius: 5px; text-align: center; margin: 20px 0;">
+          <span style="font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #000;">${code}</span>
+        </div>
+        <p>Este código expira em 10 minutos.</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #888;">Se você não solicitou este código, por favor ignore este e-mail.</p>
+      </div>
+    `;
 
-    console.log('code =>', code);
-    return { message: `code sent successfully: ${code}` };
-    //return { message: `code sent successfully` };
+    await this.emailService.sendEmail(email, subject, text, html);
+    console.log('code send successfully =>', code);
+
+    return { message: `code sent to ${email}` };
   }
 
   async validateCode(

@@ -9,18 +9,18 @@ import {
   ParseUUIDPipe,
   UseGuards,
 } from '@nestjs/common';
-import { UploadService } from './upload.service';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import {
-  ApiConsumes,
-  ApiTags,
-  ApiOperation,
   ApiBearerAuth,
   ApiBody,
-  ApiQuery,
+  ApiConsumes,
   ApiOkResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
 } from '@nestjs/swagger';
-import { memoryStorage } from 'multer';
+import { UploadService } from './upload.service';
 import { AuthGuard } from '@nestjs/passport';
 
 @ApiBearerAuth()
@@ -29,7 +29,6 @@ import { AuthGuard } from '@nestjs/passport';
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
-  @UseGuards(AuthGuard())
   @Post(':token')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -52,15 +51,8 @@ export class UploadController {
     return this.uploadService.uploadImage(token, file);
   }
 
-  @Get(':qrToken/:userId')
-  async getUploadByQrCodeId(
-    @Param('qrToken') qrToken: string,
-    @Param('userId') userId: string,
-  ) {
-    return await this.uploadService.getUploadByQrCodeId(qrToken, userId);
-  }
-
-  @Get('files/storage/:token')
+  @UseGuards(AuthGuard())
+  @Get(':token')
   @ApiOperation({
     summary: 'Listar URLs válidas dos arquivos do token',
   })
