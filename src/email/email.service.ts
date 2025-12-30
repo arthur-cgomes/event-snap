@@ -5,30 +5,15 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
-import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private resend: Resend;
-  private gmailTransporter: nodemailer.Transporter;
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
     this.resend = new Resend(apiKey);
-
-    this.gmailTransporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: this.configService.get<string>('GMAIL_USER'),
-        pass: this.configService.get<string>('GMAIL_PASS'),
-      },
-      tls: {
-        ciphers: 'SSLv3',
-      },
-    });
   }
 
   async sendEmail(to: string, subject: string, text: string, html?: string) {
@@ -58,25 +43,54 @@ export class EmailService {
     }
   }
 
-  async sendGmail(to: string, subject: string, text: string, html?: string) {
-    console.log('Sending email via Gmail to:', to);
-    const gmailUser = this.configService.get<string>('GMAIL_USER');
+  async sendBrevo(to: string, subject: string, text: string, html?: string) {
+    const apiKey = this.configService.get<string>('BREVO_API_KEY');
+    const senderEmail = this.configService.get<string>('BREVO_SENDER_EMAIL');
+    const senderName =
+      this.configService.get<string>('BREVO_SENDER_NAME') || 'MVP App';
+
+    const url = 'https://api.brevo.com/v3/smtp/email';
+
+    const body = {
+      sender: {
+        name: senderName,
+        email: senderEmail,
+      },
+      to: [
+        {
+          email: to,
+        },
+      ],
+      subject: subject,
+      htmlContent: html || text,
+      textContent: text,
+    };
 
     try {
-      const info = await this.gmailTransporter.sendMail({
-        from: `"MVP App" <${gmailUser}>`,
-        to,
-        subject,
-        text,
-        html: html || text,
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'api-key': apiKey,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(body),
       });
 
-      this.logger.log(`Gmail sent to: ${to} | ID: ${info.messageId}`);
-      return info;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(JSON.stringify(errorData));
+      }
+
+      const data = await response.json();
+      this.logger.log(`Brevo email sent to: ${to} | ID: ${data.messageId}`);
+      return data;
     } catch (error) {
-      this.logger.error('Error sending via Gmail:', error);
+      this.logger.error('Error sending via Brevo API:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
       throw new InternalServerErrorException(
-        `Gmail sending failed: ${(error as Error).message}`,
+        `Brevo sending failed: ${errorMessage}`,
       );
     }
   }

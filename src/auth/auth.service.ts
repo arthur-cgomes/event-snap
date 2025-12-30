@@ -108,7 +108,7 @@ export class AuthService {
     `;
 
     //await this.emailService.sendEmail(email, subject, text, html);
-    await this.emailService.sendGmail(email, subject, text, html);
+    await this.emailService.sendBrevo(email, subject, text, html);
     console.log('code send successfully =>', code);
 
     return { message: `code sent to ${email}` };
