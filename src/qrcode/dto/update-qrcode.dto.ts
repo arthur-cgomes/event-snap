@@ -1,14 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDate, IsOptional, IsString } from 'class-validator';
+import { IsDate, IsEnum, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
+import { QrCodeType } from '../../common/enum/qrcode-type.enum';
 
 export class UpdateQrcodeDto {
-  @ApiProperty({ type: Date, description: 'Data de expiração' })
-  @IsOptional()
-  @IsDate()
-  @Type(() => Date)
-  expirationDate?: Date;
-
   @ApiProperty({ type: String, description: 'Nome do evento' })
   @IsOptional()
   @IsString()
@@ -23,4 +18,15 @@ export class UpdateQrcodeDto {
   @IsOptional()
   @IsString()
   eventColor?: string;
+
+  @ApiProperty({ type: Date, description: 'Data de expiração' })
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  expirationDate?: Date | null;
+
+  @ApiProperty({ type: String, description: 'Tipo do QR Code' })
+  @IsOptional()
+  @IsEnum(QrCodeType)
+  type?: QrCodeType;
 }

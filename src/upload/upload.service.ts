@@ -1,15 +1,17 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import * as path from 'path';
 import sharp from 'sharp';
 import { supabase } from '../config/supabase.config';
 import { Upload } from './entity/upload.entity';
 import { QrcodeService } from '../qrcode/qrcode.service';
+import { QrCodeType } from '../common/enum/qrcode-type.enum';
 
 @Injectable()
 export class UploadService {
@@ -24,6 +26,14 @@ export class UploadService {
     file: Express.Multer.File,
   ): Promise<Upload> {
     const qrCode = await this.qrCodeService.getQrCodeByToken(qrToken);
+
+    if (qrCode.type === QrCodeType.FREE) {
+      const currentUploads = await this.countUploadsByQrCodeId(qrCode.id);
+
+      if (currentUploads >= 10) {
+        throw new ForbiddenException('upload limit reached for free QR code');
+      }
+    }
 
     if (!file) {
       throw new BadRequestException('file expected');
@@ -45,7 +55,7 @@ export class UploadService {
         fileExt = '.webp';
       } catch (error) {
         optimizedBuffer = file.buffer;
-        console.error('Sharp processing error, using original file:', error);
+        console.error('sharp processing error, using original file:', error);
       }
     } else {
       optimizedBuffer = file.buffer;
@@ -76,7 +86,7 @@ export class UploadService {
       .getPublicUrl(objectKey);
 
     const upload = this.uploadRepository.create({
-      imageUrl: publicUrlData.publicUrl,
+      fileUrl: publicUrlData.publicUrl,
       qrCode,
     });
 
@@ -94,10 +104,56 @@ export class UploadService {
 
     const uploads = await this.uploadRepository.find({
       where: { qrCode: { token: qrToken } },
-      select: ['imageUrl'],
+      select: ['fileUrl'],
       order: { createdAt: 'DESC' },
     });
 
-    return uploads.map((u) => u.imageUrl);
+    return uploads.map((u) => u.fileUrl);
+  }
+
+  async countUploadsByQrCodeId(qrCodeId: string): Promise<number> {
+    return this.uploadRepository.count({
+      where: { qrCode: { id: qrCodeId } },
+    });
+  }
+
+  async deleteFiles(filesUrls: string[]): Promise<void> {
+    if (!filesUrls || filesUrls.length === 0) {
+      return;
+    }
+
+    const files = await this.uploadRepository.find({
+      where: { fileUrl: In(filesUrls) },
+    });
+
+    if (files.length > 0) {
+      await this.uploadRepository.remove(files);
+    }
+
+    const pathsToDelete = filesUrls.map((url) => this.extractPathFromUrl(url));
+
+    const { error: deleteError } = await supabase.storage
+      .from('event-snap')
+      .remove(pathsToDelete);
+
+    if (deleteError) {
+      console.error('error deleting files from storage', deleteError);
+      throw new BadRequestException(
+        `error deleting files from storage: ${deleteError.message}`,
+      );
+    }
+  }
+
+  private extractPathFromUrl(url: string): string {
+    const bucketName = 'event-snap';
+
+    const parts = url.split(`/${bucketName}/`);
+
+    if (parts.length < 2) {
+      console.warn(`error extracting path from url: ${url}`);
+      return url;
+    }
+
+    return parts[1];
   }
 }

@@ -8,6 +8,10 @@ import {
   Query,
   ParseUUIDPipe,
   UseGuards,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  Body,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -18,10 +22,12 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
+  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { UploadService } from './upload.service';
 import { AuthGuard } from '@nestjs/passport';
+import { DeleteFilesDto } from './dto/delete-files.dto';
 
 @ApiBearerAuth()
 @ApiTags('Upload')
@@ -63,5 +69,17 @@ export class UploadController {
     @Query('userId', new ParseUUIDPipe()) userId: string,
   ): Promise<string[]> {
     return this.uploadService.getFileUrlsByToken(token, userId);
+  }
+
+  //@UseGuards(AuthGuard())
+  @Delete()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Deleta múltiplos arquivos pela URL' })
+  @ApiResponse({
+    status: 204,
+    description: 'Arquivos deletados com sucesso (nenhum conteúdo retornado).',
+  })
+  async deleteFiles(@Body() deleteFilesDto: DeleteFilesDto) {
+    await this.uploadService.deleteFiles(deleteFilesDto.urls);
   }
 }

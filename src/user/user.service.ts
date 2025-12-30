@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   forwardRef,
   Inject,
@@ -29,6 +30,7 @@ import { endOfDay, startOfDay, subMonths } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { UserType } from '../common/enum/user-type.enum';
 import { QrcodeService } from '../qrcode/qrcode.service';
+import { QrCodeType } from 'src/common/enum/qrcode-type.enum';
 
 @Injectable()
 export class UserService {
@@ -81,7 +83,10 @@ export class UserService {
       throw new ConflictException('user with this email already exists');
     }
 
-    return await this.userRepository.create(createUserDto).save();
+    const savedUser = await this.userRepository.create(createUserDto).save();
+    await this.generateWelcomeQrCode(savedUser.id);
+
+    return savedUser;
   }
 
   async updateUser(
@@ -367,5 +372,25 @@ export class UserService {
     const nextSkip = over <= 0 ? null : Number(skip) + Number(take);
 
     return { skip: nextSkip, total: count, items };
+  }
+
+  private async generateWelcomeQrCode(userId: string): Promise<void> {
+    const expirationDate = new Date();
+    expirationDate.setDate(expirationDate.getDate() + 7);
+
+    try {
+      await this.qrCodeService.createQrCode({
+        userId,
+        eventName: '1️⃣ QR Code Grátis!',
+        descriptionEvent:
+          'QR Code gratuito gerado automaticamente, você pode alterá-lo a qualquer momento.',
+        type: QrCodeType.FREE,
+        expirationDate: expirationDate,
+      });
+    } catch (error) {
+      throw new BadRequestException('error creating automatic QR code', {
+        cause: error,
+      });
+    }
   }
 }

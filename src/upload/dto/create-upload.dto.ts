@@ -7,8 +7,8 @@ export class CreateUploadDto {
   @IsString()
   token: string;
 
-  @ApiProperty({ description: 'URL da imagem' })
+  @ApiProperty({ description: 'URL do arquivo' })
   @IsNotEmpty()
   @IsString()
-  imageUrl: string;
+  fileUrl: string;
 }

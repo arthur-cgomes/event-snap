@@ -5,9 +5,9 @@ import { BaseCollection } from '../../common/entity/base.entity';
 
 @Entity('upload')
 export class Upload extends BaseCollection {
-  @ApiProperty({ description: 'URL da imagem ou conteúdo enviado' })
+  @ApiProperty({ description: 'URL do arquivo' })
   @Column()
-  imageUrl: string;
+  fileUrl: string;
 
   @ApiProperty({ description: 'QR code relacionado', type: () => QrCode })
   @ManyToOne(() => QrCode, (qrCode) => qrCode.uploads)

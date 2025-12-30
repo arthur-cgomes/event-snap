@@ -3,6 +3,7 @@ import { BaseCollection } from 'src/common/entity/base.entity';
 import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 import { Upload } from '../../upload/entity/upload.entity';
 import { User } from '../../user/entity/user.entity';
+import { QrCodeType } from '../../common/enum/qrcode-type.enum';
 
 @Entity('qrcode')
 export class QrCode extends BaseCollection {
@@ -32,8 +33,24 @@ export class QrCode extends BaseCollection {
   eventColor: string;
 
   @ApiProperty({ type: Date, description: 'Data de expiração do QR code' })
-  @Column({ type: 'timestamp' })
-  expirationDate: Date;
+  @Column({
+    type: 'timestamp',
+    nullable: true,
+    default: null,
+  })
+  expirationDate: Date | null;
+
+  @ApiProperty({
+    enum: QrCodeType,
+    description:
+      'Tipo do QR Code: FREE (Grátis), PAID (Pago/Único) ou RECURRING (Recorrente)',
+  })
+  @Column({
+    type: 'enum',
+    enum: QrCodeType,
+    default: QrCodeType.FREE,
+  })
+  type: QrCodeType;
 
   @ApiProperty({
     description: 'Relação com o usuário',

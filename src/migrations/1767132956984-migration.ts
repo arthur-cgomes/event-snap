@@ -1,14 +1,17 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class Migration1767055532202 implements MigrationInterface {
-  name = 'Migration1767055532202';
+export class Migration1767132956984 implements MigrationInterface {
+  name = 'Migration1767132956984';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "upload" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "active" boolean NOT NULL DEFAULT true, "deletedAt" TIMESTAMP, "imageUrl" character varying NOT NULL, "qrCodeId" uuid, CONSTRAINT "PK_1fe8db121b3de4ddfa677fc51f3" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "upload" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "active" boolean NOT NULL DEFAULT true, "deletedAt" TIMESTAMP, "fileUrl" character varying NOT NULL, "qrCodeId" uuid, CONSTRAINT "PK_1fe8db121b3de4ddfa677fc51f3" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "qrcode" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "active" boolean NOT NULL DEFAULT true, "deletedAt" TIMESTAMP, "token" character varying, "eventName" character varying, "descriptionEvent" character varying, "eventColor" character varying, "expirationDate" TIMESTAMP NOT NULL, "userId" uuid, CONSTRAINT "PK_9aaafe9e77dce17001051dab68a" PRIMARY KEY ("id"))`,
+      `CREATE TYPE "public"."qrcode_type_enum" AS ENUM('FREE', 'PAID', 'RECURRING')`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "qrcode" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "active" boolean NOT NULL DEFAULT true, "deletedAt" TIMESTAMP, "token" character varying, "eventName" character varying, "descriptionEvent" character varying, "eventColor" character varying, "expirationDate" TIMESTAMP, "type" "public"."qrcode_type_enum" NOT NULL DEFAULT 'FREE', "userId" uuid, CONSTRAINT "PK_9aaafe9e77dce17001051dab68a" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."user_usertype_enum" AS ENUM('user', 'global', 'admin')`,
@@ -38,6 +41,7 @@ export class Migration1767055532202 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "user"`);
     await queryRunner.query(`DROP TYPE "public"."user_usertype_enum"`);
     await queryRunner.query(`DROP TABLE "qrcode"`);
+    await queryRunner.query(`DROP TYPE "public"."qrcode_type_enum"`);
     await queryRunner.query(`DROP TABLE "upload"`);
   }
 }
