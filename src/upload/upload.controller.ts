@@ -33,7 +33,7 @@ export class UploadController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
-      limits: { fileSize: 10 * 1024 * 1024 },
+      limits: { fileSize: 60 * 1024 * 1024 },
     }),
   )
   @ApiConsumes('multipart/form-data')
