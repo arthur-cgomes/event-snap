@@ -37,8 +37,14 @@ export class QrcodeService {
   async createQrCode(
     createQrcodeDto: CreateQrcodeDto,
   ): Promise<{ qrCode: QrCode; qrCodeImage: string }> {
-    const { userId, expirationDate, eventName, descriptionEvent, type } =
-      createQrcodeDto;
+    const {
+      userId,
+      expirationDate,
+      eventName,
+      descriptionEvent,
+      eventColor,
+      type,
+    } = createQrcodeDto;
 
     await this.userService.getUserById(userId);
     const token = uuidv4();
@@ -50,6 +56,7 @@ export class QrcodeService {
       descriptionEvent,
       user: { id: userId } as any,
       ...(expirationUtc ? { expirationDate: expirationUtc } : {}),
+      eventColor,
       type,
     });
 
