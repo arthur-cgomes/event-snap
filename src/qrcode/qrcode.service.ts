@@ -37,7 +37,7 @@ export class QrcodeService {
   async createQrCode(
     createQrcodeDto: CreateQrcodeDto,
   ): Promise<{ qrCode: QrCode; qrCodeImage: string }> {
-    const { userId, expirationDate, eventName, descriptionEvent } =
+    const { userId, expirationDate, eventName, descriptionEvent, type } =
       createQrcodeDto;
 
     await this.userService.getUserById(userId);
@@ -50,6 +50,7 @@ export class QrcodeService {
       descriptionEvent,
       user: { id: userId } as any,
       ...(expirationUtc ? { expirationDate: expirationUtc } : {}),
+      type,
     });
 
     const savedQrCode = await this.qrCodeRepository.save(qrCode);
