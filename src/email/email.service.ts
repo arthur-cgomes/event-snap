@@ -18,10 +18,15 @@ export class EmailService {
     this.resend = new Resend(apiKey);
 
     this.gmailTransporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
       auth: {
         user: this.configService.get<string>('GMAIL_USER'),
         pass: this.configService.get<string>('GMAIL_PASS'),
+      },
+      tls: {
+        ciphers: 'SSLv3',
       },
     });
   }
