@@ -63,14 +63,19 @@ export class UserService {
     newPassword: string,
   ): Promise<void> {
     const user = await this.findByEmail(email);
-    if (!user) throw new NotFoundException('Usuário não encontrado');
 
     user.password = newPassword;
     await this.userRepository.save(user);
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { email } });
+    const searchEmail = await this.userRepository.findOne({ where: { email } });
+
+    if (!searchEmail) {
+      throw new NotFoundException('user with this email not found');
+    }
+
+    return searchEmail;
   }
 
   // User Management
@@ -125,6 +130,7 @@ export class UserService {
     const conditions: FindManyOptions<User> = {
       take,
       skip,
+      where: { deletedAt: IsNull() },
       order: {
         [sort]: order,
       },

@@ -128,4 +128,11 @@ export class AuthService {
 
     return true;
   }
+
+  async forceResetPassword(userId: string, newPassword: string) {
+    const user = await this.userService.getUserById(userId);
+    await this.userService.resetPasswordByEmail(user.email, newPassword);
+
+    return { message: 'password updated successfully by admin' };
+  }
 }

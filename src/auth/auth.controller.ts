@@ -5,10 +5,7 @@ import {
   NotFoundException,
   Param,
   Post,
-  Put,
-  UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserService } from '../user/user.service';
 import { AuthService } from './auth.service';
@@ -16,6 +13,7 @@ import { ConfirmResetDto } from './dto/confirm-reset..dto';
 import { ConfirmSignupDto } from './dto/confirm-signup.dto';
 import { ConfirmUpdateUserDto } from './dto/confirm-update.dto';
 import { AuthPayload } from './interfaces/auth.interface';
+import { ForceResetPasswordDto } from './dto/force-reset-password.dto';
 
 @ApiBearerAuth()
 @ApiTags('Auth')
@@ -84,8 +82,7 @@ export class AuthController {
     return { message: 'password reset successfully' };
   }
 
-  @UseGuards(AuthGuard())
-  @Put('/:userId/request-update')
+  @Post('/:userId/request-update')
   @ApiOperation({ summary: 'Solicita código para atualizar dados do usuário' })
   async requestUserUpdate(@Param('userId') userId: string) {
     const user = await this.userService.getUserById(userId);
@@ -94,8 +91,7 @@ export class AuthController {
     return { message: 'Código de verificação enviado para o email' };
   }
 
-  @UseGuards(AuthGuard())
-  @Put('/:userId/confirm-update')
+  @Post('/:userId/confirm-update')
   @ApiOperation({
     summary: 'Atualiza dados do usuário',
   })
@@ -108,5 +104,16 @@ export class AuthController {
     const { code, ...updateData } = dto;
 
     return await this.userService.updateUser(userId, updateData);
+  }
+
+  @Post('admin/force-reset/:userId')
+  @ApiOperation({
+    summary: 'ADMIN: Força a troca de senha do usuário sem validação de código',
+  })
+  async forceResetPassword(
+    @Param('userId') userId: string,
+    @Body() dto: ForceResetPasswordDto,
+  ) {
+    return await this.authService.forceResetPassword(userId, dto.password);
   }
 }
