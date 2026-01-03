@@ -4,7 +4,7 @@ import {
   Delete,
   Get,
   Param,
-  Put,
+  Patch,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -32,7 +32,7 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @UseGuards(AuthGuard())
-  @Put('/:userId/update')
+  @Patch('/:userId/update')
   @ApiOperation({
     summary: 'Atualiza um usuário',
   })

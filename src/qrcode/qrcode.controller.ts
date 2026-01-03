@@ -49,7 +49,7 @@ export class QrcodeController {
 
   @Get('/:id')
   @ApiOperation({
-    summary: 'Busca um qr code pelo ID ou token',
+    summary: 'Busca um qrcode pelo ID ou token',
   })
   @ApiOkResponse({ type: QrCode })
   async getQrCodeByIdOrToken(@Param('id') id: string) {

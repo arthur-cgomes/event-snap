@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import * as path from 'path';
 import sharp from 'sharp';
 import { supabase } from '../config/supabase.config';
@@ -95,15 +95,14 @@ export class UploadService {
 
   async getFileUrlsByToken(qrToken: string, userId: string): Promise<string[]> {
     const qrCode = await this.qrCodeService.getQrCodeByToken(qrToken);
-    if (!qrCode) throw new NotFoundException('qr code not found');
+    if (!qrCode) throw new NotFoundException('qrcode not found');
 
-    // Validação de permissão (se necessário descomentar e ajustar)
     if (qrCode.user && qrCode.user.id !== userId) {
-      // throw new ForbiddenException('no permission');
+      throw new ForbiddenException('no permission');
     }
 
     const uploads = await this.uploadRepository.find({
-      where: { qrCode: { token: qrToken } },
+      where: { qrCode: { token: qrToken }, deletedAt: IsNull() },
       select: ['fileUrl'],
       order: { createdAt: 'DESC' },
     });
@@ -127,33 +126,10 @@ export class UploadService {
     });
 
     if (files.length > 0) {
-      await this.uploadRepository.remove(files);
-    }
-
-    const pathsToDelete = filesUrls.map((url) => this.extractPathFromUrl(url));
-
-    const { error: deleteError } = await supabase.storage
-      .from('event-snap')
-      .remove(pathsToDelete);
-
-    if (deleteError) {
-      console.error('error deleting files from storage', deleteError);
-      throw new BadRequestException(
-        `error deleting files from storage: ${deleteError.message}`,
+      await this.uploadRepository.update(
+        { fileUrl: In(filesUrls) },
+        { deletedAt: new Date() },
       );
     }
-  }
-
-  private extractPathFromUrl(url: string): string {
-    const bucketName = 'event-snap';
-
-    const parts = url.split(`/${bucketName}/`);
-
-    if (parts.length < 2) {
-      console.warn(`error extracting path from url: ${url}`);
-      return url;
-    }
-
-    return parts[1];
   }
 }
