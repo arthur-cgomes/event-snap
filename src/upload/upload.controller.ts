@@ -6,7 +6,6 @@ import {
   UploadedFile,
   UseInterceptors,
   Query,
-  ParseUUIDPipe,
   UseGuards,
   Delete,
   HttpCode,
@@ -29,6 +28,8 @@ import { UploadService } from './upload.service';
 import { AuthGuard } from '@nestjs/passport';
 import { DeleteFilesDto } from './dto/delete-files.dto';
 import { Throttle } from '@nestjs/throttler';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { User } from '../user/entity/user.entity';
 
 @ApiBearerAuth()
 @ApiTags('Upload')
@@ -68,7 +69,6 @@ export class UploadController {
   @ApiOperation({
     summary: 'Listar URLs válidas dos arquivos do token (paginado)',
   })
-  @ApiQuery({ name: 'userId', required: true, type: String })
   @ApiQuery({ name: 'take', required: false, type: Number, example: 20 })
   @ApiQuery({ name: 'skip', required: false, type: Number, example: 0 })
   @ApiOkResponse({
@@ -83,19 +83,19 @@ export class UploadController {
   })
   async getFileUrlsByToken(
     @Param('token') token: string,
-    @Query('userId', new ParseUUIDPipe()) userId: string,
+    @CurrentUser() user: User,
     @Query('take') take?: number,
     @Query('skip') skip?: number,
   ) {
     return this.uploadService.getFileUrlsByToken(
       token,
-      userId,
+      user.id,
       take || 20,
       skip || 0,
     );
   }
 
-  //@UseGuards(AuthGuard())
+  @UseGuards(AuthGuard())
   @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Deleta múltiplos arquivos pela URL' })
