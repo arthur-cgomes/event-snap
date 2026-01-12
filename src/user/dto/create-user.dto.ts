@@ -7,6 +7,7 @@ import {
   IsString,
 } from 'class-validator';
 import { UserType } from '../../common/enum/user-type.enum';
+import { IsStrongPassword } from '../../common/validators/password.validator';
 
 export class CreateUserDto {
   @ApiProperty({
@@ -43,10 +44,10 @@ export class CreateUserDto {
 
   @ApiProperty({
     type: String,
-    description: 'Senha do usuário',
+    description: 'Senha do usuário (mínimo 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial)',
   })
   @IsNotEmpty()
-  @IsString()
+  @IsStrongPassword()
   password: string;
 
   @ApiProperty({

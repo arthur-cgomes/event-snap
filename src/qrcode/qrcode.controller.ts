@@ -21,6 +21,11 @@ import { AuthGuard } from '@nestjs/passport';
 import { GetAllResponseDto } from 'src/common/dto/get-all.dto';
 import { QrCode } from './entity/qrcode.entity';
 import { UpdateQrcodeDto } from './dto/update-qrcode.dto';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { User } from '../user/entity/user.entity';
+import { UserType } from '../common/enum/user-type.enum';
 
 @ApiBearerAuth()
 @ApiTags('QRCode')
@@ -56,24 +61,24 @@ export class QrcodeController {
     return await this.qrcodeService.getQrCodeByIdOrToken(id);
   }
 
+  @UseGuards(AuthGuard())
   @Get()
   @ApiOperation({
-    summary: 'Busca todos os qr codes',
+    summary: 'Busca todos os qr codes do usuário autenticado',
   })
   @ApiQuery({ name: 'take', required: false })
   @ApiQuery({ name: 'skip', required: false })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'sort', required: false })
   @ApiQuery({ name: 'order', required: false })
-  @ApiQuery({ name: 'userId', required: false })
   @ApiOkResponse({ type: GetAllResponseDto<QrCode> })
   async getAllQrCodes(
+    @CurrentUser() user: User,
     @Query('take') take = 10,
     @Query('skip') skip = 0,
     @Query('search') search: string,
     @Query('sort') sort: string = 'name',
     @Query('order') order: 'ASC' | 'DESC' = 'ASC',
-    @Query('userId') userId?: string,
   ) {
     return await this.qrcodeService.getAllQrCodes(
       take,
@@ -81,13 +86,15 @@ export class QrcodeController {
       search,
       sort,
       order,
-      userId,
+      user.id,
     );
   }
 
+  @UseGuards(AuthGuard(), RolesGuard)
+  @Roles(UserType.ADMIN)
   @Get('/admin/by-status')
   @ApiOperation({
-    summary: 'Busca todos os qr codes por status (ativos ou expirados)',
+    summary: 'Busca todos os qr codes por status (ativos ou expirados) - ADMIN',
   })
   @ApiQuery({ name: 'take', required: false })
   @ApiQuery({ name: 'skip', required: false })

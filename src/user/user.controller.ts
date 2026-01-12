@@ -24,6 +24,10 @@ import { User } from './entity/user.entity';
 import { UserService } from './user.service';
 import { DashAdminQueryDto } from './dto/get-dashboard.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { UserType } from '../common/enum/user-type.enum';
 
 @ApiBearerAuth()
 @ApiTags('User')
@@ -32,28 +36,28 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @UseGuards(AuthGuard())
-  @Patch('/:userId/update')
+  @Patch('/profile')
   @ApiOperation({
-    summary: 'Atualiza um usuário',
+    summary: 'Atualiza o perfil do usuário autenticado',
   })
   @ApiOkResponse({ type: UserDto })
   @ApiNotFoundResponse({ description: 'Usuário não encontrado' })
   async updateUser(
-    @Param('userId') userId: string,
+    @CurrentUser() user: User,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    return await this.userService.updateUser(userId, updateUserDto);
+    return await this.userService.updateUser(user.id, updateUserDto);
   }
 
   @UseGuards(AuthGuard())
-  @Delete('/:userId/delete')
+  @Delete('/profile')
   @ApiOperation({
-    summary: 'Exclui um usuário',
+    summary: 'Exclui o perfil do usuário autenticado',
   })
   @ApiOkResponse({ type: DeleteResponseDto })
   @ApiNotFoundResponse({ description: 'Usuário não encontrado' })
-  async deleteUser(@Param('userId') userId: string) {
-    return { message: await this.userService.deleteUser(userId) };
+  async deleteUser(@CurrentUser() user: User) {
+    return { message: await this.userService.deleteUser(user.id) };
   }
 
   @Get('/:userId')
@@ -66,9 +70,11 @@ export class UserController {
     return await this.userService.getUserById(userId);
   }
 
+  @UseGuards(AuthGuard(), RolesGuard)
+  @Roles(UserType.ADMIN)
   @Get()
   @ApiOperation({
-    summary: 'Busca todos os usuários',
+    summary: 'Busca todos os usuários - ADMIN',
   })
   @ApiQuery({ name: 'take', required: false })
   @ApiQuery({ name: 'skip', required: false })
@@ -86,17 +92,21 @@ export class UserController {
     return await this.userService.getAllUsers(take, skip, search, sort, order);
   }
 
+  @UseGuards(AuthGuard(), RolesGuard)
+  @Roles(UserType.ADMIN)
   @Get('/admin/dash')
   @ApiOperation({
-    summary: 'Retorna dados do dashboard administrativo',
+    summary: 'Retorna dados do dashboard administrativo - ADMIN',
   })
   async getDash(@Query() q: DashAdminQueryDto) {
     const { start, end, tz } = q;
     return this.userService.getDashAdmin({ start, end, tz });
   }
 
+  @UseGuards(AuthGuard(), RolesGuard)
+  @Roles(UserType.ADMIN)
   @Get('/admin/dash/created-users')
-  @ApiOperation({ summary: 'Retorna usuários criados (paginado)' })
+  @ApiOperation({ summary: 'Retorna usuários criados (paginado) - ADMIN' })
   @ApiQuery({ name: 'take', required: false })
   @ApiQuery({ name: 'skip', required: false })
   @ApiQuery({ name: 'search', required: false })
@@ -118,8 +128,10 @@ export class UserController {
     );
   }
 
+  @UseGuards(AuthGuard(), RolesGuard)
+  @Roles(UserType.ADMIN)
   @Get('/admin/dash/status-users')
-  @ApiOperation({ summary: 'Retorna usuários ativos recentes (paginado)' })
+  @ApiOperation({ summary: 'Retorna usuários ativos recentes (paginado) - ADMIN' })
   @ApiQuery({ name: 'take', required: false })
   @ApiQuery({ name: 'skip', required: false })
   @ApiQuery({ name: 'status', required: true })
@@ -141,8 +153,10 @@ export class UserController {
     );
   }
 
+  @UseGuards(AuthGuard(), RolesGuard)
+  @Roles(UserType.ADMIN)
   @Get('/admin/dash/without-qrcodes')
-  @ApiOperation({ summary: 'Retorna usuários sem QR codes (paginado)' })
+  @ApiOperation({ summary: 'Retorna usuários sem QR codes (paginado) - ADMIN' })
   @ApiQuery({ name: 'take', required: false })
   @ApiQuery({ name: 'skip', required: false })
   @ApiQuery({ name: 'sort', required: false })

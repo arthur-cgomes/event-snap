@@ -23,7 +23,10 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: '*',
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',').map((origin) => origin.trim())
+      : '*',
+    credentials: true,
   });
   app.useGlobalPipes(new ValidationPipe());
 
