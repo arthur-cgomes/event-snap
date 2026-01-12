@@ -31,13 +31,18 @@ import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { UserType } from '../common/enum/user-type.enum';
 import { QrcodeService } from '../qrcode/qrcode.service';
 import { QrCodeType } from 'src/common/enum/qrcode-type.enum';
+import { CacheService } from '../common/services/cache.service';
 
 @Injectable()
 export class UserService {
+  private readonly CACHE_PREFIX = 'user';
+  private readonly DASHBOARD_CACHE_TTL = 300; // 5 minutes
+
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     @Inject(forwardRef(() => QrcodeService))
     private readonly qrCodeService: QrcodeService,
+    private readonly cacheService: CacheService,
   ) {}
 
   // Used in AuthService
@@ -90,6 +95,9 @@ export class UserService {
 
     const savedUser = await this.userRepository.create(createUserDto).save();
     await this.generateWelcomeQrCode(savedUser.id);
+
+    // Invalidate dashboard cache when new user is created
+    await this.cacheService.delByPattern(`${this.CACHE_PREFIX}:dashboard:*`);
 
     return savedUser;
   }
@@ -165,12 +173,20 @@ export class UserService {
   }
 
   async getDashAdmin(params?: UsersCountParams): Promise<AdminDashResponse> {
+    // Create cache key based on params
+    const cacheKey = `${this.CACHE_PREFIX}:dashboard:${JSON.stringify(params || {})}`;
+    const cached = await this.cacheService.get<AdminDashResponse>(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
     const [usersRes, qrStats] = await Promise.all([
       this.getUsersCount(params).catch(() => undefined),
       this.getIdsUsers().catch(() => ({ active: 0, expired: 0, none: 0 })),
     ]);
 
-    return {
+    const result = {
       usersCreated: usersRes?.usersCreated ?? 0,
       usersLoggedIn: usersRes?.usersLoggedIn ?? 0,
       usersInactive: usersRes?.usersInactive ?? 0,
@@ -179,6 +195,11 @@ export class UserService {
       qrcodeNone: qrStats?.none ?? 0,
       window: usersRes?.window,
     };
+
+    // Cache dashboard for 5 minutes
+    await this.cacheService.set(cacheKey, result, this.DASHBOARD_CACHE_TTL);
+
+    return result;
   }
 
   async getUsersCount(params?: UsersCountParams): Promise<UsersCountResponse> {

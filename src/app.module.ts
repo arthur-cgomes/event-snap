@@ -9,6 +9,7 @@ import { QrcodeModule } from './qrcode/qrcode.module';
 import { UploadModule } from './upload/upload.module';
 import { UserModule } from './user/user.module';
 import { BannerModule } from './banner/banner.module';
+import { CommonModule } from './common/common.module';
 config();
 
 @Module({
@@ -27,6 +28,7 @@ config();
         synchronize: false,
       }),
     }),
+    CommonModule,
     AuthModule,
     UserModule,
     HealthCheckModule,

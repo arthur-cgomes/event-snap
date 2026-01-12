@@ -106,7 +106,22 @@ Database synchronize is **disabled** (`synchronize: false` in app.module.ts). Sc
 - CLI: src/config/typeorm.config.ts (for migration commands)
 
 ### Soft Deletes
-Uploads use soft deletes via `deletedAt` column. The `deleteFiles` method in upload.service.ts:119 sets `deletedAt` timestamp instead of removing records.
+Uploads use soft deletes via `deletedAt` column. The `deleteFiles` method in upload.service.ts sets `deletedAt` timestamp instead of removing records.
+
+### Redis Cache Layer
+The application uses Redis for caching to reduce database load and improve performance. The `CacheService` (src/common/services/cache.service.ts) is a global service available to all modules.
+
+**Cached Data**:
+- **QR Codes**: Cached by ID and token with dynamic TTL based on expiration date (max 1 hour). Invalidated on create/update.
+- **Uploads**: Lists and counts cached for 5 minutes. Invalidated on new upload or delete.
+- **Dashboard Stats**: Cached for 5 minutes. Invalidated when users are created.
+
+**Cache Keys Pattern**:
+- `qrcode:id:{uuid}`, `qrcode:token:{uuid}`, `qrcode:stats:{ids}`
+- `uploads:{token}`, `uploads:count:{qrCodeId}`
+- `user:dashboard:{params}`
+
+Cache failures are handled gracefully and never break the application. See `docs/CACHE_IMPLEMENTATION.md` for detailed documentation.
 
 ### Swagger Documentation
 API docs auto-generated at `http://localhost:3000/api`. All DTOs and entities should use `@ApiProperty()` decorators. Bearer auth is configured globally in main.ts:18.
