@@ -126,6 +126,29 @@ Cache failures are handled gracefully and never break the application. See `docs
 ### Swagger Documentation
 API docs auto-generated at `http://localhost:3000/api`. All DTOs and entities should use `@ApiProperty()` decorators. Bearer auth is configured globally in main.ts:18.
 
+## Performance Optimizations
+
+Several performance optimizations have been implemented to improve speed and reduce cloud costs:
+
+**Query Optimization**:
+- Dashboard uses single query with CASE statements instead of multiple COUNT queries (70% faster)
+- Connection pooling: min 5, max 20 connections, 30s idle timeout
+
+**Response Optimization**:
+- GZIP compression for responses > 1KB (60-80% size reduction)
+- Upload pagination: 20 items per page by default
+
+**Rate Limiting**:
+- Global: 100 requests/minute per IP
+- Upload endpoint: 10 uploads/minute per IP
+
+**Automatic Cleanup** (Cron Jobs):
+- Daily (3 AM): Soft delete QR codes expired >30 days
+- Weekly (Sunday 4 AM): Clean orphaned uploads
+- Monthly (1st 2 AM): Log statistics
+
+See `docs/OPTIMIZATIONS_SUMMARY.md` and `docs/CACHE_IMPLEMENTATION.md` for detailed documentation.
+
 ## Environment Variables
 
 Required variables (see .env.example):

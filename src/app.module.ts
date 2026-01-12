@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { config } from 'dotenv';
 import { AuthModule } from './auth/auth.module';
 import { EmailModule } from './email/email.module';
@@ -14,6 +16,12 @@ config();
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 1 minute
+        limit: 100, // 100 requests per minute (global default)
+      },
+    ]),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -26,6 +34,14 @@ config();
         database: configService.get('TYPEORM_DATABASE'),
         autoLoadEntities: true,
         synchronize: false,
+        logging: configService.get('NODE_ENV') !== 'production',
+        extra: {
+          max: 20, // Maximum pool size
+          min: 5, // Minimum pool size
+          idleTimeoutMillis: 30000, // Close idle connections after 30s
+          connectionTimeoutMillis: 2000, // Connection timeout
+        },
+        poolSize: 20, // Legacy compatibility
       }),
     }),
     CommonModule,
@@ -36,6 +52,12 @@ config();
     EmailModule,
     QrcodeModule,
     BannerModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

@@ -97,14 +97,19 @@ export class UploadService {
 
     const savedUpload = await this.uploadRepository.save(upload);
 
-    // Invalidate uploads cache for this QR code
-    await this.cacheService.del(`${this.CACHE_PREFIX}:${qrToken}`);
+    // Invalidate all uploads cache for this QR code (all pages)
+    await this.cacheService.delByPattern(`${this.CACHE_PREFIX}:${qrToken}:*`);
     await this.cacheService.del(`${this.CACHE_PREFIX}:count:${qrCode.id}`);
 
     return savedUpload;
   }
 
-  async getFileUrlsByToken(qrToken: string, userId: string): Promise<string[]> {
+  async getFileUrlsByToken(
+    qrToken: string,
+    userId: string,
+    take: number = 20,
+    skip: number = 0,
+  ): Promise<{ items: string[]; total: number; skip: number | null }> {
     const qrCode = await this.qrCodeService.getQrCodeByToken(qrToken);
     if (!qrCode) throw new NotFoundException('qrcode not found');
 
@@ -112,26 +117,36 @@ export class UploadService {
       throw new ForbiddenException('no permission');
     }
 
-    // Try cache first
-    const cacheKey = `${this.CACHE_PREFIX}:${qrToken}`;
-    const cached = await this.cacheService.get<string[]>(cacheKey);
+    // Try cache first for this specific page
+    const cacheKey = `${this.CACHE_PREFIX}:${qrToken}:page:${take}:${skip}`;
+    const cached = await this.cacheService.get<{
+      items: string[];
+      total: number;
+      skip: number | null;
+    }>(cacheKey);
 
     if (cached) {
       return cached;
     }
 
-    const uploads = await this.uploadRepository.find({
+    const [uploads, total] = await this.uploadRepository.findAndCount({
       where: { qrCode: { token: qrToken }, deletedAt: IsNull() },
       select: ['fileUrl'],
       order: { createdAt: 'DESC' },
+      take,
+      skip,
     });
 
-    const urls = uploads.map((u) => u.fileUrl);
+    const items = uploads.map((u) => u.fileUrl);
+    const over = total - Number(take) - Number(skip);
+    const nextSkip = over <= 0 ? null : Number(skip) + Number(take);
 
-    // Cache the result
-    await this.cacheService.set(cacheKey, urls, this.CACHE_TTL);
+    const result = { items, total, skip: nextSkip };
 
-    return urls;
+    // Cache the result for 5 minutes
+    await this.cacheService.set(cacheKey, result, this.CACHE_TTL);
+
+    return result;
   }
 
   async countUploadsByQrCodeId(qrCodeId: string): Promise<number> {
@@ -169,14 +184,14 @@ export class UploadService {
         { deletedAt: new Date() },
       );
 
-      // Invalidate cache for affected QR codes
+      // Invalidate cache for affected QR codes (all pages)
       const qrTokens = new Set(
         files.map((f) => f.qrCode?.token).filter(Boolean),
       );
       const qrIds = new Set(files.map((f) => f.qrCode?.id).filter(Boolean));
 
       for (const token of qrTokens) {
-        await this.cacheService.del(`${this.CACHE_PREFIX}:${token}`);
+        await this.cacheService.delByPattern(`${this.CACHE_PREFIX}:${token}:*`);
       }
 
       for (const id of qrIds) {

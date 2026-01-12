@@ -28,6 +28,7 @@ import {
 import { UploadService } from './upload.service';
 import { AuthGuard } from '@nestjs/passport';
 import { DeleteFilesDto } from './dto/delete-files.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiBearerAuth()
 @ApiTags('Upload')
@@ -36,6 +37,7 @@ export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
   @Post(':token')
+  @Throttle({ default: { ttl: 60000, limit: 10 } }) // 10 uploads per minute
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
@@ -50,6 +52,10 @@ export class UploadController {
       required: ['file'],
     },
   })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many requests. Rate limit exceeded (10 uploads/minute).',
+  })
   async uploadImage(
     @Param('token') token: string,
     @UploadedFile() file: Express.Multer.File,
@@ -60,15 +66,33 @@ export class UploadController {
   @UseGuards(AuthGuard())
   @Get(':token')
   @ApiOperation({
-    summary: 'Listar URLs válidas dos arquivos do token',
+    summary: 'Listar URLs válidas dos arquivos do token (paginado)',
   })
   @ApiQuery({ name: 'userId', required: true, type: String })
-  @ApiOkResponse({ schema: { type: 'array', items: { type: 'string' } } })
+  @ApiQuery({ name: 'take', required: false, type: Number, example: 20 })
+  @ApiQuery({ name: 'skip', required: false, type: Number, example: 0 })
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        items: { type: 'array', items: { type: 'string' } },
+        total: { type: 'number' },
+        skip: { type: 'number', nullable: true },
+      },
+    },
+  })
   async getFileUrlsByToken(
     @Param('token') token: string,
     @Query('userId', new ParseUUIDPipe()) userId: string,
-  ): Promise<string[]> {
-    return this.uploadService.getFileUrlsByToken(token, userId);
+    @Query('take') take?: number,
+    @Query('skip') skip?: number,
+  ) {
+    return this.uploadService.getFileUrlsByToken(
+      token,
+      userId,
+      take || 20,
+      skip || 0,
+    );
   }
 
   //@UseGuards(AuthGuard())
