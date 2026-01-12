@@ -67,7 +67,6 @@ export class QrcodeService {
 
     const savedQrCode = await this.qrCodeRepository.save(qrCode);
 
-    // Cache the QR code with dynamic TTL based on expiration
     const ttl = this.calculateCacheTTL(savedQrCode.expirationDate);
     await this.cacheService.set(
       `${this.CACHE_PREFIX}:token:${token}`,
@@ -80,8 +79,9 @@ export class QrcodeService {
       ttl,
     );
 
-    // Invalidate user's QR code list cache
-    await this.cacheService.delByPattern(`${this.CACHE_PREFIX}:user:${userId}:*`);
+    await this.cacheService.delByPattern(
+      `${this.CACHE_PREFIX}:user:${userId}:*`,
+    );
 
     const frontendUrl =
       process.env.FRONTEND_URL ||
@@ -121,14 +121,12 @@ export class QrcodeService {
 
     const updated = await this.qrCodeRepository.save(qrcode);
 
-    // Invalidate all cache entries for this QR code
     await this.invalidateQrCodeCache(updated.id, updated.token);
 
     return updated;
   }
 
   async getQrCodeById(idOrToken: string): Promise<QrCode> {
-    // Try cache first
     const cacheKey = `${this.CACHE_PREFIX}:id:${idOrToken}`;
     const cached = await this.cacheService.get<QrCode>(cacheKey);
 
@@ -145,7 +143,6 @@ export class QrcodeService {
       throw new NotFoundException('qrcode not found');
     }
 
-    // Cache for future requests
     const ttl = this.calculateCacheTTL(qrcode.expirationDate);
     await this.cacheService.set(cacheKey, qrcode, ttl);
 
@@ -153,12 +150,10 @@ export class QrcodeService {
   }
 
   async getQrCodeByIdOrToken(idOrToken: string): Promise<QrCode> {
-    // Try cache by ID first
     let cached = await this.cacheService.get<QrCode>(
       `${this.CACHE_PREFIX}:id:${idOrToken}`,
     );
 
-    // Try cache by token if ID cache miss
     if (!cached) {
       cached = await this.cacheService.get<QrCode>(
         `${this.CACHE_PREFIX}:token:${idOrToken}`,
@@ -178,7 +173,6 @@ export class QrcodeService {
       throw new NotFoundException('Evento não encontrado (QR Code inválido).');
     }
 
-    // Cache for future requests (both by ID and token)
     const ttl = this.calculateCacheTTL(qrcode.expirationDate);
     await this.cacheService.set(
       `${this.CACHE_PREFIX}:id:${qrcode.id}`,
@@ -236,7 +230,6 @@ export class QrcodeService {
   }
 
   async getQrCodeByToken(token: string): Promise<QrCode> {
-    // Try cache first
     const cacheKey = `${this.CACHE_PREFIX}:token:${token}`;
     const cached = await this.cacheService.get<QrCode>(cacheKey);
 
@@ -253,7 +246,6 @@ export class QrcodeService {
       throw new NotFoundException('qrcode not found');
     }
 
-    // Cache for future requests
     const ttl = this.calculateCacheTTL(qrcode.expirationDate);
     await this.cacheService.set(cacheKey, qrcode, ttl);
 
@@ -268,7 +260,6 @@ export class QrcodeService {
     const ids = Array.from(new Set((userIds || []).filter(Boolean)));
     if (ids.length === 0) return { active: 0, expired: 0, none: 0 };
 
-    // Cache key based on sorted user IDs for consistency
     const cacheKey = `${this.CACHE_PREFIX}:stats:${ids.sort().join(',')}`;
     const cached = await this.cacheService.get<{
       active: number;
@@ -305,7 +296,6 @@ export class QrcodeService {
     const none = ids.length - usersWithQr.size;
     const result = { active, expired, none };
 
-    // Cache stats for 5 minutes
     await this.cacheService.set(cacheKey, result, 300);
 
     return result;
@@ -405,18 +395,13 @@ export class QrcodeService {
     const now = Date.now();
     const expiresIn = Math.floor((expirationDate.getTime() - now) / 1000);
 
-    // If already expired or expiring soon, cache for 5 minutes
     if (expiresIn <= 0) {
       return 300;
     }
 
-    // Cache until expiration, but max 1 hour
     return Math.min(expiresIn, this.CACHE_TTL);
   }
 
-  /**
-   * Invalidate all cache entries for a specific QR code
-   */
   private async invalidateQrCodeCache(
     id: string,
     token: string,

@@ -7,9 +7,6 @@ export class CacheService {
 
   constructor(@Inject('REDIS') private readonly redis: Redis) {}
 
-  /**
-   * Get cached value by key
-   */
   async get<T>(key: string): Promise<T | null> {
     try {
       const cached = await this.redis.get(key);
@@ -22,9 +19,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Set cached value with optional TTL (in seconds)
-   */
   async set<T>(key: string, value: T, ttl?: number): Promise<void> {
     try {
       const serialized = JSON.stringify(value);
@@ -39,9 +33,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Delete cached value by key
-   */
   async del(key: string): Promise<void> {
     try {
       await this.redis.del(key);
@@ -50,24 +41,20 @@ export class CacheService {
     }
   }
 
-  /**
-   * Delete multiple keys by pattern (e.g., "qrcode:*")
-   */
   async delByPattern(pattern: string): Promise<void> {
     try {
       const keys = await this.redis.keys(pattern);
       if (keys.length > 0) {
         await this.redis.del(...keys);
-        this.logger.log(`Deleted ${keys.length} keys matching pattern: ${pattern}`);
+        this.logger.log(
+          `Deleted ${keys.length} keys matching pattern: ${pattern}`,
+        );
       }
     } catch (error) {
       this.logger.error(`Error deleting cache pattern ${pattern}:`, error);
     }
   }
 
-  /**
-   * Get or set pattern: fetch from cache, or compute and cache if missing
-   */
   async getOrSet<T>(
     key: string,
     factory: () => Promise<T>,
@@ -83,9 +70,6 @@ export class CacheService {
     return value;
   }
 
-  /**
-   * Check if key exists
-   */
   async exists(key: string): Promise<boolean> {
     try {
       const result = await this.redis.exists(key);
@@ -96,9 +80,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Get remaining TTL for a key (in seconds)
-   */
   async ttl(key: string): Promise<number> {
     try {
       return await this.redis.ttl(key);
@@ -108,9 +89,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Increment counter (useful for rate limiting)
-   */
   async increment(key: string, ttl?: number): Promise<number> {
     try {
       const value = await this.redis.incr(key);

@@ -18,8 +18,8 @@ config();
   imports: [
     ThrottlerModule.forRoot([
       {
-        ttl: 60000, // 1 minute
-        limit: 100, // 100 requests per minute (global default)
+        ttl: 60000,
+        limit: 100,
       },
     ]),
     TypeOrmModule.forRootAsync({
@@ -36,12 +36,12 @@ config();
         synchronize: false,
         logging: configService.get('NODE_ENV') !== 'production',
         extra: {
-          max: 20, // Maximum pool size
-          min: 5, // Minimum pool size
-          idleTimeoutMillis: 30000, // Close idle connections after 30s
-          connectionTimeoutMillis: 2000, // Connection timeout
+          max: 20,
+          min: 5,
+          idleTimeoutMillis: 30000,
+          connectionTimeoutMillis: 2000,
         },
-        poolSize: 20, // Legacy compatibility
+        poolSize: 20,
       }),
     }),
     CommonModule,

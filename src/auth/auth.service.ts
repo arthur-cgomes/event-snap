@@ -77,7 +77,6 @@ export class AuthService {
 
     await this.redis.set(key, code, 'EX', ttl);
 
-    // Mapeamento de assuntos
     const subjectMap = {
       signup: 'EventSnap - Seu código de verificação',
       reset: 'EventSnap - Redefinição de senha',
@@ -87,7 +86,6 @@ export class AuthService {
     const subject = subjectMap[purpose];
     const text = `Seu código de verificação é: ${code}. Válido por 10 minutos.`;
 
-    // HTML um pouco mais formatado
     const html = `
       <div style="font-family: Arial, sans-serif; color: #333;">
         <h2>Olá!</h2>

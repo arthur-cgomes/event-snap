@@ -48,7 +48,6 @@ export class UploadService {
     let mimeType = file.mimetype;
     let fileExt = path.extname(file.originalname);
 
-    // Lógica de otimização com Sharp
     if (file.mimetype.startsWith('image/')) {
       try {
         optimizedBuffer = await sharp(file.buffer)
@@ -66,7 +65,6 @@ export class UploadService {
       optimizedBuffer = file.buffer;
     }
 
-    // Geração do nome do arquivo
     const base = path.basename(
       file.originalname || 'upload.bin',
       path.extname(file.originalname),
@@ -74,7 +72,6 @@ export class UploadService {
     const sanitized = base.replace(/[^\w.\-]/g, '_');
     const objectKey = `${qrToken}/${Date.now()}-${sanitized}${fileExt}`;
 
-    // 2. Uso da instância importada 'supabase'
     const { error: uploadError } = await supabase.storage
       .from('event-snap')
       .upload(objectKey, optimizedBuffer, {
@@ -97,7 +94,6 @@ export class UploadService {
 
     const savedUpload = await this.uploadRepository.save(upload);
 
-    // Invalidate all uploads cache for this QR code (all pages)
     await this.cacheService.delByPattern(`${this.CACHE_PREFIX}:${qrToken}:*`);
     await this.cacheService.del(`${this.CACHE_PREFIX}:count:${qrCode.id}`);
 
@@ -117,7 +113,6 @@ export class UploadService {
       throw new ForbiddenException('no permission');
     }
 
-    // Try cache first for this specific page
     const cacheKey = `${this.CACHE_PREFIX}:${qrToken}:page:${take}:${skip}`;
     const cached = await this.cacheService.get<{
       items: string[];
@@ -143,14 +138,12 @@ export class UploadService {
 
     const result = { items, total, skip: nextSkip };
 
-    // Cache the result for 5 minutes
     await this.cacheService.set(cacheKey, result, this.CACHE_TTL);
 
     return result;
   }
 
   async countUploadsByQrCodeId(qrCodeId: string): Promise<number> {
-    // Try cache first
     const cacheKey = `${this.CACHE_PREFIX}:count:${qrCodeId}`;
     const cached = await this.cacheService.get<number>(cacheKey);
 
@@ -162,7 +155,6 @@ export class UploadService {
       where: { qrCode: { id: qrCodeId } },
     });
 
-    // Cache count for 5 minutes
     await this.cacheService.set(cacheKey, count, this.CACHE_TTL);
 
     return count;
@@ -184,7 +176,6 @@ export class UploadService {
         { deletedAt: new Date() },
       );
 
-      // Invalidate cache for affected QR codes (all pages)
       const qrTokens = new Set(
         files.map((f) => f.qrCode?.token).filter(Boolean),
       );

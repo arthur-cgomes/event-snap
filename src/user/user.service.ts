@@ -9,7 +9,6 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entity/user.entity';
 import {
-  Between,
   FindManyOptions,
   FindOptionsWhere,
   ILike,
@@ -96,7 +95,6 @@ export class UserService {
     const savedUser = await this.userRepository.create(createUserDto).save();
     await this.generateWelcomeQrCode(savedUser.id);
 
-    // Invalidate dashboard cache when new user is created
     await this.cacheService.delByPattern(`${this.CACHE_PREFIX}:dashboard:*`);
 
     return savedUser;
@@ -173,7 +171,6 @@ export class UserService {
   }
 
   async getDashAdmin(params?: UsersCountParams): Promise<AdminDashResponse> {
-    // Create cache key based on params
     const cacheKey = `${this.CACHE_PREFIX}:dashboard:${JSON.stringify(params || {})}`;
     const cached = await this.cacheService.get<AdminDashResponse>(cacheKey);
 
@@ -196,7 +193,6 @@ export class UserService {
       window: usersRes?.window,
     };
 
-    // Cache dashboard for 5 minutes
     await this.cacheService.set(cacheKey, result, this.DASHBOARD_CACHE_TTL);
 
     return result;
@@ -205,7 +201,6 @@ export class UserService {
   async getUsersCount(params?: UsersCountParams): Promise<UsersCountResponse> {
     const { fromUtc, toUtc, tz } = this.buildUtcRange(params);
 
-    // Optimized: Single query with CASE statements instead of 3 separate queries
     const result = await this.userRepository
       .createQueryBuilder('user')
       .select([

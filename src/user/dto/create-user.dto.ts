@@ -44,7 +44,8 @@ export class CreateUserDto {
 
   @ApiProperty({
     type: String,
-    description: 'Senha do usuário (mínimo 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial)',
+    description:
+      'Senha do usuário (mínimo 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial)',
   })
   @IsNotEmpty()
   @IsStrongPassword()

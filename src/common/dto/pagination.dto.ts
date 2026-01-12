@@ -10,9 +10,6 @@ import {
   MaxLength,
 } from 'class-validator';
 
-/**
- * Base pagination DTO with validation to prevent injection and abuse
- */
 export class PaginationDto {
   @ApiProperty({ required: false, default: 10, minimum: 1, maximum: 100 })
   @IsOptional()
@@ -47,9 +44,6 @@ export class PaginationDto {
   order?: 'ASC' | 'DESC' = 'ASC';
 }
 
-/**
- * Extended pagination DTO for QR code queries
- */
 export class QrCodePaginationDto extends PaginationDto {
   @ApiProperty({ required: false, enum: ['active', 'expired'] })
   @IsOptional()
@@ -57,9 +51,6 @@ export class QrCodePaginationDto extends PaginationDto {
   status?: 'active' | 'expired';
 }
 
-/**
- * Extended pagination DTO for user queries
- */
 export class UserPaginationDto extends PaginationDto {
   @ApiProperty({ required: false, enum: ['active', 'inactive'] })
   @IsOptional()

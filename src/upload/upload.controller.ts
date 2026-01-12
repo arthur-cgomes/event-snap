@@ -38,7 +38,7 @@ export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
   @Post(':token')
-  @Throttle({ default: { ttl: 60000, limit: 10 } }) // 10 uploads per minute
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),

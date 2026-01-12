@@ -131,7 +131,9 @@ export class UserController {
   @UseGuards(AuthGuard(), RolesGuard)
   @Roles(UserType.ADMIN)
   @Get('/admin/dash/status-users')
-  @ApiOperation({ summary: 'Retorna usuários ativos recentes (paginado) - ADMIN' })
+  @ApiOperation({
+    summary: 'Retorna usuários ativos recentes (paginado) - ADMIN',
+  })
   @ApiQuery({ name: 'take', required: false })
   @ApiQuery({ name: 'skip', required: false })
   @ApiQuery({ name: 'status', required: true })

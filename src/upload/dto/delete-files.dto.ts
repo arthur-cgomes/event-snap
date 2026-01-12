@@ -9,6 +9,5 @@ export class DeleteFilesDto {
   @IsNotEmpty()
   @IsArray()
   @IsString({ each: true })
-  // @IsUrl({}, { each: true }) // Opcional: Se quiser garantir que são URLs válidas
   urls: string[];
 }

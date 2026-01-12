@@ -3,12 +3,11 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { version } from '../package.json';
 import { ValidationPipe } from '@nestjs/common';
-import compression = require('compression');
+import compression from 'compression';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable GZIP compression for responses
   app.use(
     compression({
       filter: (req, res) => {
@@ -17,8 +16,8 @@ async function bootstrap() {
         }
         return compression.filter(req, res);
       },
-      threshold: 1024, // Only compress responses > 1KB
-      level: 6, // Compression level (0-9, 6 is default)
+      threshold: 1024,
+      level: 6,
     }),
   );
 

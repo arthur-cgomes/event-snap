@@ -93,7 +93,9 @@ describe('CacheService', () => {
     it('should handle errors gracefully', async () => {
       redisMock.set.mockRejectedValue(new Error('Redis error'));
 
-      await expect(service.set('test-key', { id: '123' })).resolves.not.toThrow();
+      await expect(
+        service.set('test-key', { id: '123' }),
+      ).resolves.not.toThrow();
     });
   });
 

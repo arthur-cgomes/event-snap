@@ -17,10 +17,6 @@ export class CleanupTask {
     private readonly uploadRepository: Repository<Upload>,
   ) {}
 
-  /**
-   * Runs every day at 3 AM to clean up expired QR codes
-   * Soft deletes QR codes that expired more than 30 days ago
-   */
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async cleanupExpiredQrCodes() {
     try {
@@ -46,14 +42,9 @@ export class CleanupTask {
     }
   }
 
-  /**
-   * Runs every week on Sunday at 4 AM to clean up orphaned uploads
-   * Soft deletes uploads that have no associated QR code or deleted QR code
-   */
   @Cron(CronExpression.EVERY_WEEK)
   async cleanupOrphanedUploads() {
     try {
-      // Find uploads where QR code is soft-deleted
       const orphanedUploads = await this.uploadRepository
         .createQueryBuilder('upload')
         .leftJoinAndSelect('upload.qrCode', 'qrCode')
@@ -82,10 +73,7 @@ export class CleanupTask {
     }
   }
 
-  /**
-   * Runs every month on the 1st at 2 AM to log statistics
-   */
-  @Cron('0 2 1 * *') // At 02:00 on the 1st of each month
+  @Cron('0 2 1 * *')
   async logMonthlyStatistics() {
     try {
       const totalQrCodes = await this.qrCodeRepository.count();
