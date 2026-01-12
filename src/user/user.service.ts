@@ -205,31 +205,26 @@ export class UserService {
   async getUsersCount(params?: UsersCountParams): Promise<UsersCountResponse> {
     const { fromUtc, toUtc, tz } = this.buildUtcRange(params);
 
-    const [usersCreated, usersLoggedIn, usersInactive] = await Promise.all([
-      this.userRepository.count({
-        where: {
-          userType: UserType.USER,
-          active: true,
-        },
-      }),
-      this.userRepository.count({
-        where: {
-          userType: UserType.USER,
-          lastLogin: Between(fromUtc, toUtc),
-        },
-      }),
-      this.userRepository.count({
-        where: {
-          userType: UserType.USER,
-          active: false,
-        },
-      }),
-    ]);
+    // Optimized: Single query with CASE statements instead of 3 separate queries
+    const result = await this.userRepository
+      .createQueryBuilder('user')
+      .select([
+        'COUNT(CASE WHEN user.userType = :userType AND user.active = true THEN 1 END) as "usersCreated"',
+        'COUNT(CASE WHEN user.userType = :userType AND user.lastLogin BETWEEN :fromUtc AND :toUtc THEN 1 END) as "usersLoggedIn"',
+        'COUNT(CASE WHEN user.userType = :userType AND user.active = false THEN 1 END) as "usersInactive"',
+      ])
+      .where('user.userType = :userType')
+      .setParameters({
+        userType: UserType.USER,
+        fromUtc,
+        toUtc,
+      })
+      .getRawOne();
 
     return {
-      usersCreated,
-      usersLoggedIn,
-      usersInactive,
+      usersCreated: parseInt(result.usersCreated) || 0,
+      usersLoggedIn: parseInt(result.usersLoggedIn) || 0,
+      usersInactive: parseInt(result.usersInactive) || 0,
       window: { from: fromUtc, to: toUtc, tz },
     };
   }
