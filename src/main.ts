@@ -3,7 +3,7 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { version } from '../package.json';
 import { ValidationPipe } from '@nestjs/common';
-import * as compression from 'compression';
+import compression = require('compression');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
