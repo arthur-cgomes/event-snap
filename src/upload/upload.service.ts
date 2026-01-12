@@ -12,13 +12,18 @@ import { supabase } from '../config/supabase.config';
 import { Upload } from './entity/upload.entity';
 import { QrcodeService } from '../qrcode/qrcode.service';
 import { QrCodeType } from '../common/enum/qrcode-type.enum';
+import { CacheService } from '../common/services/cache.service';
 
 @Injectable()
 export class UploadService {
+  private readonly CACHE_PREFIX = 'uploads';
+  private readonly CACHE_TTL = 300; // 5 minutes
+
   constructor(
     @InjectRepository(Upload)
     private readonly uploadRepository: Repository<Upload>,
     private readonly qrCodeService: QrcodeService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async uploadImage(
@@ -90,7 +95,13 @@ export class UploadService {
       qrCode,
     });
 
-    return this.uploadRepository.save(upload);
+    const savedUpload = await this.uploadRepository.save(upload);
+
+    // Invalidate uploads cache for this QR code
+    await this.cacheService.del(`${this.CACHE_PREFIX}:${qrToken}`);
+    await this.cacheService.del(`${this.CACHE_PREFIX}:count:${qrCode.id}`);
+
+    return savedUpload;
   }
 
   async getFileUrlsByToken(qrToken: string, userId: string): Promise<string[]> {
@@ -101,19 +112,45 @@ export class UploadService {
       throw new ForbiddenException('no permission');
     }
 
+    // Try cache first
+    const cacheKey = `${this.CACHE_PREFIX}:${qrToken}`;
+    const cached = await this.cacheService.get<string[]>(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
     const uploads = await this.uploadRepository.find({
       where: { qrCode: { token: qrToken }, deletedAt: IsNull() },
       select: ['fileUrl'],
       order: { createdAt: 'DESC' },
     });
 
-    return uploads.map((u) => u.fileUrl);
+    const urls = uploads.map((u) => u.fileUrl);
+
+    // Cache the result
+    await this.cacheService.set(cacheKey, urls, this.CACHE_TTL);
+
+    return urls;
   }
 
   async countUploadsByQrCodeId(qrCodeId: string): Promise<number> {
-    return this.uploadRepository.count({
+    // Try cache first
+    const cacheKey = `${this.CACHE_PREFIX}:count:${qrCodeId}`;
+    const cached = await this.cacheService.get<number>(cacheKey);
+
+    if (cached !== null) {
+      return cached;
+    }
+
+    const count = await this.uploadRepository.count({
       where: { qrCode: { id: qrCodeId } },
     });
+
+    // Cache count for 5 minutes
+    await this.cacheService.set(cacheKey, count, this.CACHE_TTL);
+
+    return count;
   }
 
   async deleteFiles(filesUrls: string[]): Promise<void> {
@@ -123,6 +160,7 @@ export class UploadService {
 
     const files = await this.uploadRepository.find({
       where: { fileUrl: In(filesUrls) },
+      relations: ['qrCode'],
     });
 
     if (files.length > 0) {
@@ -130,6 +168,20 @@ export class UploadService {
         { fileUrl: In(filesUrls) },
         { deletedAt: new Date() },
       );
+
+      // Invalidate cache for affected QR codes
+      const qrTokens = new Set(
+        files.map((f) => f.qrCode?.token).filter(Boolean),
+      );
+      const qrIds = new Set(files.map((f) => f.qrCode?.id).filter(Boolean));
+
+      for (const token of qrTokens) {
+        await this.cacheService.del(`${this.CACHE_PREFIX}:${token}`);
+      }
+
+      for (const id of qrIds) {
+        await this.cacheService.del(`${this.CACHE_PREFIX}:count:${id}`);
+      }
     }
   }
 }
