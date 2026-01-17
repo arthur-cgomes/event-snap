@@ -84,8 +84,7 @@ export class QrcodeService {
     );
 
     const frontendUrl =
-      process.env.FRONTEND_URL ||
-      'https://event-snap-front-end-production.up.railway.app';
+      process.env.FRONTEND_URL || 'https://eventsnap.up.railway.app';
     const qrData = `${frontendUrl}/#/event/${token}`;
 
     const qrCodeImage = await QRCode.toDataURL(qrData);
