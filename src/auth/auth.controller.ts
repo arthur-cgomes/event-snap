@@ -1,6 +1,5 @@
 import {
   Body,
-  ConflictException,
   Controller,
   NotFoundException,
   Param,
@@ -37,8 +36,7 @@ export class AuthController {
     summary: 'Solicita código para cadastro do usuário',
   })
   async requestSignup(@Body('email') email: string) {
-    const existing = await this.userService.findByEmail(email);
-    if (existing) throw new ConflictException('email already registered');
+    await this.userService.findByEmail(email);
     return await this.authService.generateAndSendCode(email, 'signup');
   }
 
