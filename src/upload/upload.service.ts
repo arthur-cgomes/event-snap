@@ -109,10 +109,6 @@ export class UploadService {
     const qrCode = await this.qrCodeService.getQrCodeByToken(qrToken);
     if (!qrCode) throw new NotFoundException('qrcode not found');
 
-    if (qrCode.user && qrCode.user.id !== userId) {
-      throw new ForbiddenException('no permission');
-    }
-
     const cacheKey = `${this.CACHE_PREFIX}:${qrToken}:page:${take}:${skip}`;
     const cached = await this.cacheService.get<{
       items: string[];
@@ -126,7 +122,7 @@ export class UploadService {
 
     const [uploads, total] = await this.uploadRepository.findAndCount({
       where: { qrCode: { token: qrToken }, deletedAt: IsNull() },
-      select: ['fileUrl'],
+      select: ['id', 'fileUrl', 'createdAt'],
       order: { createdAt: 'DESC' },
       take,
       skip,
