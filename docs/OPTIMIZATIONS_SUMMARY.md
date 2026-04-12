@@ -1,4 +1,4 @@
-# 🚀 Otimizações de Arquitetura - EventSnap
+# 🚀 Otimizações de Arquitetura - FotoUai
 
 ## ✅ Implementações Completas
 
@@ -17,7 +17,7 @@ Todas as melhorias de arquitetura foram implementadas com sucesso para aumentar 
 - Redução de 3 queries → 1 query
 - Uso de QueryBuilder do TypeORM
 
-**Arquivo**: `src/user/user.service.ts:205-230`
+**Arquivo**: `src/modules/user/user.service.ts`
 
 **Impacto**:
 - ⚡ **70% mais rápido** (200ms → 60ms)
@@ -95,7 +95,7 @@ Depois: GET /qrcode?take=100 → 35KB (compressed)
 
 **Arquivos**:
 - `src/app.module.ts:19-24, 56-60`
-- `src/upload/upload.controller.ts:40`
+- `src/modules/upload/upload.controller.ts`
 - `package.json` (@nestjs/throttler@^6.3.0)
 
 **Impacto**:
@@ -128,9 +128,9 @@ ThrottlerModule.forRoot([{
 - Cache por página (5 minutos)
 
 **Arquivos**:
-- `src/upload/upload.service.ts:107-150`
-- `src/upload/upload.controller.ts:66-96`
-- `src/upload/dto/get-uploads.dto.ts`
+- `src/modules/upload/upload.service.ts`
+- `src/modules/upload/upload.controller.ts`
+- `src/modules/upload/dto/get-uploads.dto.ts`
 
 **Impacto**:
 - 📉 **90% menos dados** transferidos inicialmente

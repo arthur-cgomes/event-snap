@@ -1,21 +1,26 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { APP_GUARD } from '@nestjs/core';
 import { config } from 'dotenv';
-import { AuthModule } from './auth/auth.module';
-import { EmailModule } from './email/email.module';
-import { HealthCheckModule } from './health-check/health-check.module';
-import { QrcodeModule } from './qrcode/qrcode.module';
-import { UploadModule } from './upload/upload.module';
-import { UserModule } from './user/user.module';
-import { BannerModule } from './banner/banner.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { EmailModule } from './modules/email/email.module';
+import { HealthCheckModule } from './modules/health-check/health-check.module';
+import { QrcodeModule } from './modules/qrcode/qrcode.module';
+import { UploadModule } from './modules/upload/upload.module';
+import { UserModule } from './modules/user/user.module';
+import { BannerModule } from './modules/banner/banner.module';
+import { PaymentModule } from './modules/payment/payment.module';
 import { CommonModule } from './common/common.module';
+import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { CsrfMiddleware } from './common/middleware/csrf.middleware';
 config();
 
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
@@ -52,6 +57,7 @@ config();
     EmailModule,
     QrcodeModule,
     BannerModule,
+    PaymentModule,
   ],
   providers: [
     {
@@ -60,4 +66,8 @@ config();
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware, CsrfMiddleware).forRoutes('*');
+  }
+}

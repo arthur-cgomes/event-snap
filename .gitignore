@@ -1,10 +1,17 @@
-# compiled output
-/dist
+# =============================================
+# FotoUai Backend - .gitignore
+# Stack: NestJS / TypeORM / Node.js
+# =============================================
+
+# Dependencies
 /node_modules
+
+# Build output
+/dist
 /build
 
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 pnpm-debug.log*
@@ -12,45 +19,53 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# OS
-.DS_Store
-
-# Tests
+# Tests & Coverage
 /coverage
 /.nyc_output
 
-# IDEs and editors
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs & Editors
 /.idea
+/.vscode/*
+!/.vscode/settings.json
+!/.vscode/tasks.json
+!/.vscode/launch.json
+!/.vscode/extensions.json
 .project
 .classpath
 .c9/
-*.launch
 .settings/
+*.launch
 *.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-
-# temp directory
+# Temp files
 .temp
 .tmp
 
 # Runtime data
-pids
+pids/
 *.pid
 *.seed
 *.pid.lock
 
-# Diagnostic reports (https://nodejs.org/api/report.html)
+# Diagnostic reports
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# TypeORM migrations (auto-generated, optional)
+# /migrations
+
+# Docker (optional)
+docker-compose.override.yml

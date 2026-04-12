@@ -1,4 +1,4 @@
-# 🔐 Security Improvements - EventSnap
+# 🔐 Security Improvements - FotoUai
 
 ## ✅ Implementações Completas
 
@@ -21,9 +21,9 @@ Todas as melhorias de segurança foram implementadas com sucesso para aumentar a
 - `src/common/decorators/current-user.decorator.ts`
 
 **Arquivos Modificados**:
-- `src/upload/upload.controller.ts:84-96` - Removido `@Query('userId')`
-- `src/user/user.controller.ts:39-61` - Rotas `/profile` em vez de `/:userId`
-- `src/qrcode/qrcode.controller.ts:64-91` - userId extraído do JWT
+- `src/modules/upload/upload.controller.ts` - Removido `@Query('userId')`
+- `src/modules/user/user.controller.ts` - Rotas `/profile` em vez de `/:userId`
+- `src/modules/qrcode/qrcode.controller.ts` - userId extraído do JWT
 
 **Impacto**:
 - 🔒 **Impossível manipular** userId client-side
@@ -67,8 +67,8 @@ async getFileUrlsByToken(
 - `src/common/guards/roles.guard.ts`
 
 **Arquivos Modificados**:
-- `src/user/user.controller.ts:73-171` - Todos os endpoints admin protegidos
-- `src/qrcode/qrcode.controller.ts:93-119` - Endpoint `/admin/by-status` protegido
+- `src/modules/user/user.controller.ts` - Todos os endpoints admin protegidos
+- `src/modules/qrcode/qrcode.controller.ts` - Endpoint `/admin/by-status` protegido
 
 **Impacto**:
 - 🔐 **Apenas ADMIN** pode acessar dashboards e listagens completas
@@ -95,7 +95,7 @@ async getDash(@Query() q: DashAdminQueryDto) {
 - Habilitado `@UseGuards(AuthGuard())` no endpoint DELETE `/upload`
 
 **Arquivo Modificado**:
-- `src/upload/upload.controller.ts:98` - Descomentado guard
+- `src/modules/upload/upload.controller.ts` - Descomentado guard
 
 **Impacto**:
 - 🔒 **Apenas usuários autenticados** podem deletar arquivos
@@ -128,7 +128,7 @@ async deleteFiles(@Body() deleteFilesDto: DeleteFilesDto) { }
 - Habilitado `credentials: true` para cookies seguros
 
 **Arquivo Modificado**:
-- `src/main.ts:25-30`
+- `src/main.ts`
 
 **Impacto**:
 - 🔐 **Controle granular** de quais domínios podem acessar
@@ -138,7 +138,7 @@ async deleteFiles(@Body() deleteFilesDto: DeleteFilesDto) { }
 **Configuração**:
 ```bash
 # .env
-CORS_ORIGIN=https://app.eventsnap.com,https://admin.eventsnap.com
+CORS_ORIGIN=https://app.fotouai.com,https://admin.fotouai.com
 ```
 
 **Código**:
@@ -171,9 +171,9 @@ app.enableCors({
 - `src/common/validators/password.validator.ts`
 
 **Arquivos Modificados**:
-- `src/user/dto/create-user.dto.ts:50` - Criação de usuário
-- `src/auth/dto/confirm-reset.dto.ts:19` - Reset de senha
-- `src/auth/dto/force-reset-password.dto.ts:11` - Force reset
+- `src/modules/user/dto/create-user.dto.ts` - Criação de usuário
+- `src/modules/auth/dto/confirm-reset.dto.ts` - Reset de senha
+- `src/modules/auth/dto/force-reset-password.dto.ts` - Force reset
 
 **Impacto**:
 - 🔐 **Senhas 1000x mais seguras** (combinações exponencialmente maiores)
@@ -330,7 +330,7 @@ SELECT * FROM qrcode WHERE userId = '...' AND active = true;
 Adicionar ao `.env`:
 ```bash
 # CORS - Lista de origens permitidas (separadas por vírgula)
-CORS_ORIGIN=https://app.eventsnap.com,https://admin.eventsnap.com
+CORS_ORIGIN=https://app.fotouai.com,https://admin.fotouai.com
 
 # Para desenvolvimento local, usar:
 # CORS_ORIGIN=http://localhost:3000,http://localhost:4200
@@ -412,15 +412,110 @@ const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$
 
 ---
 
+---
+
+### 8. ✅ Helmet - Headers HTTP de Segurança (Alto Impacto)
+
+**Problema**: API não enviava headers de segurança HTTP (X-Frame-Options, HSTS, X-Content-Type-Options, etc.).
+
+**Solução**:
+- Instalado `helmet` como middleware global
+- CSP desabilitado em desenvolvimento para facilitar debug
+- `crossOriginResourcePolicy: cross-origin` para compatibilidade com Supabase Storage
+- `crossOriginEmbedderPolicy: false` para evitar bloqueio de recursos externos
+
+**Arquivo Modificado**:
+- `src/main.ts`
+
+**Headers adicionados automaticamente**:
+- `X-Frame-Options: SAMEORIGIN` - Previne clickjacking
+- `X-Content-Type-Options: nosniff` - Previne MIME sniffing
+- `X-DNS-Prefetch-Control: off` - Controle de DNS prefetch
+- `X-Download-Options: noopen` - Previne download automático (IE)
+- `Referrer-Policy: no-referrer` - Controle de referrer
+- `Strict-Transport-Security` - HSTS em produção
+- `X-Permitted-Cross-Domain-Policies: none` - Política cross-domain
+
+**Impacto**:
+- 🛡️ **Proteção contra clickjacking, MIME sniffing, XSS**
+- 🔒 **HSTS** força HTTPS em produção
+- ✅ **Conformidade** com headers recomendados pela OWASP
+
+---
+
+### 9. ✅ CSRF Middleware (Médio Impacto)
+
+**Problema**: Sem proteção contra Cross-Site Request Forgery.
+
+**Solução**:
+- Middleware customizado que valida header `X-Requested-With: FotoUai`
+- Aplicado a todas as rotas que não são GET, HEAD ou OPTIONS
+- Frontend envia o header automaticamente via `apiClient.ts`
+
+**Arquivo Criado**:
+- `src/common/middleware/csrf.middleware.ts`
+
+---
+
+### 10. ✅ Audit Logging (Médio Impacto)
+
+**Problema**: Ações administrativas críticas não eram rastreadas.
+
+**Solução**:
+- Entidade `AuditLog` com campos: adminId, adminEmail, action, targetId, details, createdAt
+- `AuditService` global para registrar ações
+- Ações auditadas: `FORCE_RESET_PASSWORD`, `DELETE_USER`
+
+**Arquivos Criados**:
+- `src/common/entity/audit-log.entity.ts`
+- `src/common/services/audit.service.ts`
+
+---
+
+### 11. ✅ API Versioning (Baixo Impacto)
+
+**Problema**: API sem versionamento, dificultando futuras breaking changes.
+
+**Solução**:
+- Prefixo global `/api/v1` em todas as rotas (exceto `/health-check`)
+- Frontend configurado com o prefixo no `apiClient.ts`
+
+**Arquivo Modificado**:
+- `src/main.ts`
+
+---
+
+### 12. ✅ EventEmitter2 - Desacoplamento (Médio Impacto)
+
+**Problema**: Dependência circular entre UserService e QrcodeService via `forwardRef`.
+
+**Solução**:
+- `UserService` emite evento `user.created` ao criar usuário
+- `QrcodeService` escuta via `@OnEvent('user.created')` e gera QR code de boas-vindas
+- Removido `forwardRef` de ambos os módulos
+
+**Arquivos Modificados**:
+- `src/modules/user/user.service.ts` - Emite evento
+- `src/modules/qrcode/qrcode.service.ts` - Escuta evento
+- `src/modules/user/user.module.ts` - Removido forwardRef
+- `src/app.module.ts` - Adicionado EventEmitterModule
+
+**Arquivo Criado**:
+- `src/common/events/user-created.event.ts`
+
+---
+
 ## ✨ Resultado Final
 
-✅ **7 melhorias de segurança** implementadas
+✅ **12 melhorias de segurança e arquitetura** implementadas
 ✅ **Zero endpoints públicos** sem justificativa
 ✅ **RBAC completo** para admin
 ✅ **Conformidade OWASP** Top 10
-✅ **Backwards incompatible** (requer mudanças no frontend)
-
-**Nota Importante**: Estas mudanças quebram compatibilidade com o frontend atual. Coordenar deploy com atualização do cliente.
+✅ **Helmet** com headers HTTP de segurança
+✅ **CSRF** via header customizado
+✅ **Audit logging** para ações administrativas
+✅ **API versionada** com prefixo `/api/v1`
+✅ **Dependências circulares eliminadas** via EventEmitter2
 
 ---
 
@@ -429,4 +524,5 @@ const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$
 - [OWASP Top 10 (2021)](https://owasp.org/Top10/)
 - [NestJS Authentication](https://docs.nestjs.com/security/authentication)
 - [NestJS Authorization](https://docs.nestjs.com/security/authorization)
+- [Helmet.js](https://helmetjs.github.io/)
 - [class-validator Documentation](https://github.com/typestack/class-validator)

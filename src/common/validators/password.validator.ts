@@ -15,19 +15,14 @@ export function IsStrongPassword(validationOptions?: ValidationOptions) {
         validate(value: any, _args: ValidationArguments) {
           if (typeof value !== 'string') return false;
 
-          // At least 8 characters
           if (value.length < 8) return false;
 
-          // Contains uppercase letter
           if (!/[A-Z]/.test(value)) return false;
 
-          // Contains lowercase letter
           if (!/[a-z]/.test(value)) return false;
 
-          // Contains number
           if (!/[0-9]/.test(value)) return false;
 
-          // Contains special character
           if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(value))
             return false;
 

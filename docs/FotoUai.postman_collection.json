@@ -1,0 +1,504 @@
+{
+  "info": {
+    "name": "FotoUai API v1",
+    "description": "Collection completa da API FotoUai.\n\nPara usar:\n1. Importe no Postman\n2. Configure a variavel {{baseUrl}} (padrao: http://localhost:3000/api/v1)\n3. Execute o login e o token sera salvo automaticamente",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "token", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "qrCodeId", "value": "" },
+    { "key": "qrCodeToken", "value": "" },
+    { "key": "bannerId", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}" }]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": ["pm.request.headers.add({ key: 'X-Requested-With', value: 'FotoUai' });"]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.token) {",
+                  "  pm.collectionVariables.set('token', jsonData.data.token);",
+                  "  pm.collectionVariables.set('userId', jsonData.data.userId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@admin.com\",\n  \"password\": \"Admin@123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Me (Validate Token)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me"
+          }
+        },
+        {
+          "name": "Request Signup",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/request-signup",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"novo@usuario.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Confirm Signup",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/confirm-signup",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"novo@usuario.com\",\n  \"code\": \"123456\",\n  \"name\": \"Novo Usuario\",\n  \"password\": \"MinhaSenh@1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Request Reset Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/request-reset",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@admin.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Confirm Reset Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/confirm-reset",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@admin.com\",\n  \"code\": \"123456\",\n  \"password\": \"NovaSenha@1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Request Update User",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/{{userId}}/request-update"
+          }
+        },
+        {
+          "name": "Confirm Update User",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/{{userId}}/confirm-update",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"123456\",\n  \"name\": \"Nome Atualizado\",\n  \"phone\": \"5531999999999\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/logout"
+          }
+        },
+        {
+          "name": "[ADMIN] Force Reset Password",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/admin/force-reset/{{userId}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"NovaSenha@1\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/user/profile",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nome Atualizado\",\n  \"phone\": \"5531999999999\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Profile",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/user/profile"
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/user/{{userId}}"
+          }
+        },
+        {
+          "name": "[ADMIN] List All Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/user?take=10&skip=0&sort=name&order=ASC",
+              "host": ["{{baseUrl}}"],
+              "path": ["user"],
+              "query": [
+                { "key": "take", "value": "10" },
+                { "key": "skip", "value": "0" },
+                { "key": "sort", "value": "name" },
+                { "key": "order", "value": "ASC" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "[ADMIN] Dashboard",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/user/admin/dash?from=2025-01-01T00:00:00-03:00&to=2026-12-31T23:59:59-03:00",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "admin", "dash"],
+              "query": [
+                { "key": "from", "value": "2025-01-01T00:00:00-03:00" },
+                { "key": "to", "value": "2026-12-31T23:59:59-03:00" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "[ADMIN] Created Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/user/admin/dash/created-users?take=10&skip=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "admin", "dash", "created-users"],
+              "query": [
+                { "key": "take", "value": "10" },
+                { "key": "skip", "value": "0" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "[ADMIN] Users by Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/user/admin/dash/status-users?take=10&skip=0&status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "admin", "dash", "status-users"],
+              "query": [
+                { "key": "take", "value": "10" },
+                { "key": "skip", "value": "0" },
+                { "key": "status", "value": "active" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "[ADMIN] Users Without QR Codes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/user/admin/dash/without-qrcodes?take=10&skip=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "admin", "dash", "without-qrcodes"],
+              "query": [
+                { "key": "take", "value": "10" },
+                { "key": "skip", "value": "0" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "[ADMIN] Delete User by ID",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/user/{{userId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "QR Code",
+      "item": [
+        {
+          "name": "Create QR Code",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "  pm.collectionVariables.set('qrCodeId', jsonData.data.id);",
+                  "  pm.collectionVariables.set('qrCodeToken', jsonData.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/qrcode",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventName\": \"Meu Evento\",\n  \"eventDate\": \"2026-12-31\",\n  \"qrCodeType\": \"EVENT\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List My QR Codes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/qrcode?take=10&skip=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["qrcode"],
+              "query": [
+                { "key": "take", "value": "10" },
+                { "key": "skip", "value": "0" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get QR Code by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/qrcode/{{qrCodeId}}"
+          }
+        },
+        {
+          "name": "Get QR Code (Public Token)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/qrcode/public/{{qrCodeToken}}"
+          }
+        },
+        {
+          "name": "Update QR Code",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/qrcode/{{qrCodeId}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventName\": \"Evento Atualizado\"\n}"
+            }
+          }
+        },
+        {
+          "name": "[ADMIN] QR Codes by Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/qrcode/admin/by-status?status=active&take=10&skip=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["qrcode", "admin", "by-status"],
+              "query": [
+                { "key": "status", "value": "active" },
+                { "key": "take", "value": "10" },
+                { "key": "skip", "value": "0" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Upload",
+      "item": [
+        {
+          "name": "Upload Image",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": "{{baseUrl}}/upload/{{qrCodeToken}}",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Uploads by Token",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/upload/{{qrCodeToken}}?take=20&skip=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["upload", "{{qrCodeToken}}"],
+              "query": [
+                { "key": "take", "value": "20" },
+                { "key": "skip", "value": "0" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Files",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/upload",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"urls\": [\"https://supabase.co/storage/v1/object/...\"]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Banner",
+      "item": [
+        {
+          "name": "List Active Banners (Public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/banner/active"
+          }
+        },
+        {
+          "name": "[ADMIN] List All Banners",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/banner"
+          }
+        },
+        {
+          "name": "[ADMIN] Get Banner by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/banner/{{bannerId}}"
+          }
+        },
+        {
+          "name": "[ADMIN] Create Banner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "  pm.collectionVariables.set('bannerId', jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/banner",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Novo Banner\",\n  \"subtitle\": \"Descricao do banner\",\n  \"buttonText\": \"Saiba mais\",\n  \"buttonLink\": \"https://fotouai.com\",\n  \"backgroundColor\": \"bg-gradient-to-r from-primary/80 to-primary\",\n  \"displayOrder\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "[ADMIN] Update Banner",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/banner/{{bannerId}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Banner Atualizado\",\n  \"displayOrder\": 2\n}"
+            }
+          }
+        },
+        {
+          "name": "[ADMIN] Delete Banner",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/banner/{{bannerId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "http://localhost:3000/health-check"
+          }
+        }
+      ]
+    }
+  ]
+}
