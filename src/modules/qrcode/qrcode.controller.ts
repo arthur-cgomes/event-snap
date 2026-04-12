@@ -6,6 +6,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -61,6 +62,15 @@ export class QrcodeController {
   @ApiOperation({ summary: 'Acessa QR code pelo token público' })
   async getQrCodeByToken(@Param('token') token: string) {
     return await this.qrcodeService.getQrCodeByToken(token);
+  }
+
+  @UseGuards(AuthGuard())
+  @Get('/:id/analytics')
+  @ApiOperation({
+    summary: 'Obter análise do evento (visualizações, uploads, etc)',
+  })
+  async getEventAnalytics(@Param('id') id: string) {
+    return this.qrcodeService.getEventAnalytics(id);
   }
 
   @UseGuards(AuthGuard())
@@ -127,6 +137,22 @@ export class QrcodeController {
       status,
       sort,
       order,
+    );
+  }
+
+  @UseGuards(AuthGuard())
+  @Post('/:id/invite')
+  @ApiOperation({ summary: 'Envia convites para o evento' })
+  async sendInvite(
+    @Param('id') id: string,
+    @Body() body: { emails: string[]; channel: 'email' | 'whatsapp' },
+    @Req() req: any,
+  ) {
+    return this.qrcodeService.sendInvites(
+      id,
+      body.emails,
+      body.channel,
+      req.user,
     );
   }
 }

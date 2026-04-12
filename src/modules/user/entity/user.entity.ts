@@ -132,6 +132,25 @@ export class User extends BaseCollection {
   lastLogin?: Date;
 
   @ApiProperty({
+    type: Boolean,
+    description:
+      'Se o usuário deseja receber notificações ao fazer upload em seus eventos',
+  })
+  @Column({ name: 'notify_on_upload', default: true })
+  notifyOnUpload: boolean;
+
+  @ApiProperty({
+    type: Boolean,
+    description: 'Notificar sobre expiração do evento',
+  })
+  @Column({ name: 'notify_on_expiration', default: true })
+  notifyOnExpiration: boolean;
+
+  @ApiProperty({ type: Boolean, description: 'Notificar sobre pagamentos' })
+  @Column({ name: 'notify_on_payment', default: true })
+  notifyOnPayment: boolean;
+
+  @ApiProperty({
     description: 'Lista de QR Codes do usuário',
     type: () => [QrCode],
   })

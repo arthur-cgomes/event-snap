@@ -20,6 +20,7 @@ config();
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     EventEmitterModule.forRoot(),
     ThrottlerModule.forRoot([
       {

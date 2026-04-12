@@ -16,6 +16,8 @@ export const repositoryMockFactory = <T = any>(): MockRepository<T> => ({
   remove: jest.fn((entity) => entity),
   count: jest.fn((entity) => entity),
   delete: jest.fn((entity) => entity),
+  increment: jest.fn().mockResolvedValue({ affected: 1 }),
+  update: jest.fn().mockResolvedValue({ affected: 1 }),
   createQueryBuilder: jest.fn(() => ({
     select: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),

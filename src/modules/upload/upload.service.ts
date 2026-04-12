@@ -11,7 +11,9 @@ import sharp from 'sharp';
 import { supabase } from '../../common/config/supabase.config';
 import { Upload } from './entity/upload.entity';
 import { QrcodeService } from '../qrcode/qrcode.service';
+import { EmailService } from '../email/email.service';
 import { QrCodeType } from '../../common/enum/qrcode-type.enum';
+import { QrCodePlan } from '../../common/enum/qrcode-plan.enum';
 import { CacheService } from '../../common/services/cache.service';
 import { APP_CONSTANTS } from '../../common/constants';
 
@@ -24,6 +26,7 @@ export class UploadService {
     @InjectRepository(Upload)
     private readonly uploadRepository: Repository<Upload>,
     private readonly qrCodeService: QrcodeService,
+    private readonly emailService: EmailService,
     private readonly cacheService: CacheService,
   ) {}
 
@@ -33,12 +36,13 @@ export class UploadService {
   ): Promise<Upload> {
     const qrCode = await this.qrCodeService.getQrCodeByToken(qrToken);
 
-    if (qrCode.type === QrCodeType.FREE) {
-      const currentUploads = await this.countUploadsByQrCodeId(qrCode.id);
+    const currentUploads = await this.countUploadsByQrCodeId(qrCode.id);
+    const maxUploads = this.getMaxUploadsForPlan(qrCode.plan);
 
-      if (currentUploads >= APP_CONSTANTS.MAX_FILES_FREE_QRCODE) {
-        throw new ForbiddenException('upload limit reached for free QR code');
-      }
+    if (maxUploads !== null && currentUploads >= maxUploads) {
+      throw new ForbiddenException(
+        `upload limit reached for ${qrCode.plan} plan`,
+      );
     }
 
     if (!file) {
@@ -134,10 +138,51 @@ export class UploadService {
 
     const savedUpload = await this.uploadRepository.save(upload);
 
+    if (currentUploads === 0) {
+      try {
+        const qrWithUser = await this.qrCodeService.getQrCodeWithUser(
+          qrCode.id,
+        );
+        if (
+          qrWithUser?.user?.email &&
+          qrWithUser.user.notifyOnUpload !== false
+        ) {
+          const frontendUrl = process.env.FRONTEND_URL || 'localhost3001';
+          await this.emailService.sendEmail(
+            qrWithUser.user.email,
+            'FotoUai — Seu evento recebeu a primeira foto! 📸',
+            `Olá ${qrWithUser.user.name || ''}! Seu evento "${qrCode.eventName || 'Seu Evento'}" acabou de receber a primeira foto. Acesse seu dashboard para conferir!`,
+            this.buildFirstUploadHtml(
+              qrWithUser.user.name || '',
+              qrCode.eventName || 'Seu Evento',
+              frontendUrl,
+            ),
+          );
+        }
+      } catch (emailErr) {
+        console.error('Failed to send first upload notification:', emailErr);
+      }
+    }
+
     await this.cacheService.delByPattern(`${this.CACHE_PREFIX}:${qrToken}:*`);
     await this.cacheService.del(`${this.CACHE_PREFIX}:count:${qrCode.id}`);
 
+    this.qrCodeService.updateLastUploadAt(qrCode.id).catch(() => {});
+
     return savedUpload;
+  }
+
+  private getMaxUploadsForPlan(plan: QrCodePlan): number | null {
+    switch (plan) {
+      case QrCodePlan.FREE:
+        return APP_CONSTANTS.MAX_FILES_FREE_QRCODE;
+      case QrCodePlan.PARTY:
+        return APP_CONSTANTS.MAX_FILES_PARTY_QRCODE;
+      case QrCodePlan.CORPORATE:
+        return null;
+      default:
+        return APP_CONSTANTS.MAX_FILES_FREE_QRCODE;
+    }
   }
 
   private isVideoFile(buffer: Buffer): boolean {
@@ -283,5 +328,72 @@ export class UploadService {
         await this.cacheService.del(`${this.CACHE_PREFIX}:count:${id}`);
       }
     }
+  }
+
+  async getGalleryByToken(
+    qrToken: string,
+    take: number = 20,
+    skip: number = 0,
+  ): Promise<{ items: string[]; total: number; skip: number | null }> {
+    const qrCode = await this.qrCodeService.getQrCodeByToken(qrToken);
+    if (!qrCode) throw new NotFoundException('qrcode not found');
+    if (!qrCode.galleryEnabled)
+      throw new ForbiddenException('Gallery is not enabled for this event');
+
+    const cacheKey = `${this.CACHE_PREFIX}:gallery:${qrToken}:${take}:${skip}`;
+    const cached = await this.cacheService.get<{
+      items: string[];
+      total: number;
+      skip: number | null;
+    }>(cacheKey);
+    if (cached) return cached;
+
+    const [uploads, total] = await this.uploadRepository.findAndCount({
+      where: { qrCode: { token: qrToken }, deletedAt: IsNull() },
+      select: ['id', 'fileUrl', 'createdAt'],
+      order: { createdAt: 'DESC' },
+      take,
+      skip,
+    });
+
+    const publicUrls = uploads.map((u) => u.fileUrl);
+    const items = await this.getSignedUrls(publicUrls);
+    const over = total - Number(take) - Number(skip);
+    const nextSkip = over <= 0 ? null : Number(skip) + Number(take);
+    const result = { items, total, skip: nextSkip };
+    await this.cacheService.set(cacheKey, result, this.CACHE_TTL);
+    return result;
+  }
+
+  private buildFirstUploadHtml(
+    userName: string,
+    eventName: string,
+    frontendUrl: string,
+  ): string {
+    return `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb;">
+      <div style="background: linear-gradient(135deg, #14b8a6, #0d9488); padding: 32px 24px; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">FotoUai</h1>
+        <p style="color: #ccfbf1; margin: 8px 0 0; font-size: 14px;">Primeira foto recebida!</p>
+      </div>
+      <div style="padding: 32px 24px;">
+        <p style="font-size: 16px; color: #1f2937; margin: 0 0 16px;">Olá <strong>${userName}</strong>,</p>
+        <p style="font-size: 14px; color: #4b5563; line-height: 1.6; margin: 0 0 24px;">
+          Ótimas notícias! Seu evento <strong>"${eventName}"</strong> acabou de receber a primeira foto. Os convidados estão compartilhando momentos especiais!
+        </p>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${frontendUrl}/#/dashboard" style="display: inline-block; background: linear-gradient(135deg, #14b8a6, #0d9488); color: white; text-decoration: none; padding: 12px 32px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+            Ver no Dashboard
+          </a>
+        </div>
+        <p style="font-size: 13px; color: #9ca3af; line-height: 1.5; margin: 24px 0 0;">
+          Você receberá esta notificação apenas uma vez por evento.
+        </p>
+      </div>
+      <div style="background: #f9fafb; padding: 16px 24px; text-align: center; border-top: 1px solid #e5e7eb;">
+        <p style="font-size: 12px; color: #9ca3af; margin: 0;">© ${new Date().getFullYear()} FotoUai — Suas memórias, compartilhadas com facilidade.</p>
+      </div>
+    </div>
+  `;
   }
 }

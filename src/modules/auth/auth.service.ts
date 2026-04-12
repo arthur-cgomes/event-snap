@@ -114,69 +114,34 @@ export class AuthService {
       .join('<td style="width:8px;"></td>');
 
     const html = `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head><meta charset="UTF-8"/></head>
-<body style="margin:0;padding:0;background-color:#f4f6fb;font-family:'Segoe UI',Roboto,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6fb;padding:40px 0;">
-    <tr><td align="center">
-      <table role="presentation" width="420" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
-        <tr>
-          <td style="background:linear-gradient(135deg,#3b82f6,#6366f1);padding:32px 40px;text-align:center;">
-            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
-              <tr>
-                <td style="padding-right:10px;vertical-align:middle;">
-                  <div style="width:36px;height:36px;background-color:rgba(255,255,255,0.2);border-radius:8px;text-align:center;line-height:36px;font-size:18px;">📸</div>
-                </td>
-                <td style="vertical-align:middle;">
-                  <span style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">FotoUai</span>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:36px 40px 20px;">
-            <p style="margin:0 0 6px;font-size:22px;font-weight:700;color:#1e293b;">${purposeEmoji} Olá!</p>
-            <p style="margin:0;font-size:15px;color:#64748b;line-height:1.6;">
-              Você solicitou um código para <strong style="color:#1e293b;">${purposeText}</strong>. Use o código abaixo:
-            </p>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:8px 40px 28px;" align="center">
-            <table role="presentation" cellpadding="0" cellspacing="0">
-              <tr>${codeDigits}</tr>
-            </table>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:0 40px 32px;" align="center">
-            <div style="display:inline-block;background-color:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px 20px;">
-              <span style="font-size:13px;color:#92400e;">⏳ Este código expira em <strong>10 minutos</strong></span>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:0 40px;">
-            <hr style="border:none;border-top:1px solid #e2e8f0;margin:0;"/>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:24px 40px 32px;text-align:center;">
-            <p style="margin:0 0 8px;font-size:12px;color:#94a3b8;line-height:1.5;">
-              Se você não solicitou este código, ignore este e-mail com segurança.
-            </p>
-            <p style="margin:0;font-size:11px;color:#cbd5e1;">
-              © ${new Date().getFullYear()} FotoUai — Capture cada momento.
-            </p>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb;">
+      <div style="background: linear-gradient(135deg, #3b82f6, #6366f1); padding: 32px 24px; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">FotoUai</h1>
+        <p style="color: #dbeafe; margin: 8px 0 0; font-size: 14px;">${purposeEmoji} Código de Verificação</p>
+      </div>
+      <div style="padding: 32px 24px;">
+        <p style="font-size: 16px; color: #1f2937; margin: 0 0 16px;">Olá!</p>
+        <p style="font-size: 14px; color: #4b5563; line-height: 1.6; margin: 0 0 24px;">
+          Você solicitou um código para <strong>${purposeText}</strong>. Use o código abaixo:
+        </p>
+        <div style="text-align: center; margin: 0 0 24px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+            <tr>${codeDigits}</tr>
+          </table>
+        </div>
+        <div style="background: #fef3c7; border-radius: 8px; padding: 12px 16px; margin: 0 0 24px; border: 1px solid #fde68a; text-align: center;">
+          <p style="font-size: 13px; color: #92400e; margin: 0; font-weight: 600;">
+            ⏳ Este código expira em <strong>10 minutos</strong>
+          </p>
+        </div>
+        <p style="font-size: 13px; color: #9ca3af; line-height: 1.5; margin: 0; text-align: center;">
+          Se você não solicitou este código, ignore este e-mail com segurança.
+        </p>
+      </div>
+      <div style="background: #f9fafb; padding: 16px 24px; text-align: center; border-top: 1px solid #e5e7eb;">
+        <p style="font-size: 12px; color: #9ca3af; margin: 0;">© ${new Date().getFullYear()} FotoUai — Suas memórias, compartilhadas com facilidade.</p>
+      </div>
+    </div>`;
 
     console.log(`[Auth] verification code generated for ${email} =>`, code);
 

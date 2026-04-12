@@ -11,12 +11,16 @@ import {
   MockRepository,
   repositoryMockFactory,
 } from '../../../common/utils/test.util';
+import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../../../common/services/cache.service';
 import { UserService } from '../../user/user.service';
+import { EmailService } from '../../email/email.service';
 import { QrcodeService } from '../qrcode.service';
 import { QrCode } from '../entity/qrcode.entity';
 import { User } from '../../user/entity/user.entity';
 import { QrCodeType } from '../../../common/enum/qrcode-type.enum';
+import { QrCodePlan } from '../../../common/enum/qrcode-plan.enum';
+import { APP_CONSTANTS } from '../../../common/constants';
 
 jest.mock('qrcode');
 
@@ -79,6 +83,18 @@ describe('QrcodeService', () => {
           provide: EventEmitter2,
           useValue: {
             on: jest.fn(),
+          },
+        },
+        {
+          provide: EmailService,
+          useValue: {
+            sendEmail: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('http://localhost:3001'),
           },
         },
       ],
@@ -993,6 +1009,1049 @@ describe('QrcodeService', () => {
       const calls = (cacheService.set as jest.Mock).mock.calls;
       const hasTtl300 = calls.some((call) => call[2] === 300);
       expect(hasTtl300).toBe(true);
+    });
+  });
+
+  describe('updateQrCode - plan and uploadEnabled fields', () => {
+    it('Should update plan and uploadEnabled when provided', async () => {
+      const updateDto = {
+        plan: QrCodePlan.PARTY,
+        uploadEnabled: true,
+      };
+
+      const qrCodeToUpdate = {
+        ...mockQrCode,
+        plan: QrCodePlan.FREE,
+        uploadEnabled: false,
+      };
+
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeToUpdate);
+      qrCodeRepository.save = jest.fn().mockResolvedValue({
+        ...qrCodeToUpdate,
+        plan: QrCodePlan.PARTY,
+        uploadEnabled: true,
+      });
+
+      const result = await service.updateQrCode('qr-id', updateDto, mockUser);
+
+      expect(result.plan).toBe(QrCodePlan.PARTY);
+      expect(result.uploadEnabled).toBe(true);
+      expect(qrCodeRepository.save).toHaveBeenCalled();
+    });
+
+    it('Should not update plan when undefined in DTO', async () => {
+      const updateDto = {
+        eventName: 'Updated Event',
+      };
+
+      const qrCodeToUpdate = {
+        ...mockQrCode,
+        plan: QrCodePlan.FREE,
+      };
+
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeToUpdate);
+      qrCodeRepository.save = jest.fn().mockResolvedValue(qrCodeToUpdate);
+
+      await service.updateQrCode('qr-id', updateDto, mockUser);
+
+      const savedQrCode = (qrCodeRepository.save as jest.Mock).mock.calls[0][0];
+      expect(savedQrCode.plan).toBe(QrCodePlan.FREE);
+    });
+
+    it('Should not update uploadEnabled when undefined in DTO', async () => {
+      const updateDto = {
+        eventName: 'Updated Event',
+      };
+
+      const qrCodeToUpdate = {
+        ...mockQrCode,
+        uploadEnabled: false,
+      };
+
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeToUpdate);
+      qrCodeRepository.save = jest.fn().mockResolvedValue(qrCodeToUpdate);
+
+      await service.updateQrCode('qr-id', updateDto, mockUser);
+
+      const savedQrCode = (qrCodeRepository.save as jest.Mock).mock.calls[0][0];
+      expect(savedQrCode.uploadEnabled).toBe(false);
+    });
+  });
+
+  describe('updateQrCode - paid plan fields', () => {
+    it('Should update paid-plan-only fields for PARTY plan', async () => {
+      const updateDto = {
+        plan: QrCodePlan.PARTY,
+        eventLocation: 'São Paulo',
+        eventDateTime: '2026-05-15T18:00:00',
+        dressCode: 'Formal',
+        eventTheme: 'Gala',
+        coverImageUrl: 'https://example.com/cover.jpg',
+        recommendations: 'Come hungry!',
+        galleryEnabled: true,
+        eventColor: '#00FF00',
+      };
+
+      const qrCodeToUpdate = {
+        ...mockQrCode,
+        plan: QrCodePlan.FREE,
+        eventLocation: null,
+        eventDateTime: null,
+        dressCode: null,
+        eventTheme: null,
+        coverImageUrl: null,
+        recommendations: null,
+        galleryEnabled: false,
+      };
+
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeToUpdate);
+      qrCodeRepository.save = jest.fn().mockResolvedValue({
+        ...qrCodeToUpdate,
+        ...updateDto,
+        eventDateTime: new Date(updateDto.eventDateTime),
+      });
+
+      const result = await service.updateQrCode('qr-id', updateDto, mockUser);
+
+      expect(result.plan).toBe(QrCodePlan.PARTY);
+      expect(result.eventLocation).toBe('São Paulo');
+      expect(result.dressCode).toBe('Formal');
+      expect(result.eventTheme).toBe('Gala');
+      expect(result.coverImageUrl).toBe('https://example.com/cover.jpg');
+      expect(result.recommendations).toBe('Come hungry!');
+      expect(result.galleryEnabled).toBe(true);
+      expect(result.eventColor).toBe('#00FF00');
+    });
+
+    it('Should update paid-plan-only fields for CORPORATE plan', async () => {
+      const updateDto = {
+        plan: QrCodePlan.CORPORATE,
+        eventLocation: 'New York',
+        eventDateTime: '2026-06-20T09:00:00',
+        dressCode: 'Business Casual',
+        eventTheme: 'Conference',
+        coverImageUrl: 'https://example.com/corporate.jpg',
+        recommendations: 'Bring your business cards',
+        galleryEnabled: true,
+        eventColor: '#0000FF',
+      };
+
+      const qrCodeToUpdate = {
+        ...mockQrCode,
+        plan: QrCodePlan.FREE,
+      };
+
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeToUpdate);
+      qrCodeRepository.save = jest.fn().mockResolvedValue({
+        ...qrCodeToUpdate,
+        ...updateDto,
+        eventDateTime: new Date(updateDto.eventDateTime),
+      });
+
+      const result = await service.updateQrCode('qr-id', updateDto, mockUser);
+
+      expect(result.plan).toBe(QrCodePlan.CORPORATE);
+      expect(result.eventLocation).toBe('New York');
+      expect(result.eventDateTime).toBeDefined();
+      expect(result.dressCode).toBe('Business Casual');
+      expect(result.eventTheme).toBe('Conference');
+      expect(result.coverImageUrl).toBe('https://example.com/corporate.jpg');
+      expect(result.recommendations).toBe('Bring your business cards');
+      expect(result.galleryEnabled).toBe(true);
+    });
+
+    it('Should not update paid-plan fields when plan is FREE', async () => {
+      const updateDto = {
+        plan: QrCodePlan.FREE,
+        eventLocation: 'Should be ignored',
+        eventDateTime: '2026-05-15T18:00:00',
+        dressCode: 'Should be ignored',
+      };
+
+      const qrCodeToUpdate = {
+        ...mockQrCode,
+        plan: QrCodePlan.FREE,
+        eventLocation: null,
+        dressCode: null,
+      };
+
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeToUpdate);
+      qrCodeRepository.save = jest.fn().mockResolvedValue(qrCodeToUpdate);
+
+      await service.updateQrCode('qr-id', updateDto, mockUser);
+
+      const savedQrCode = (qrCodeRepository.save as jest.Mock).mock.calls[0][0];
+      expect(savedQrCode.eventLocation).toBeNull();
+      expect(savedQrCode.dressCode).toBeNull();
+    });
+
+    it('Should partially update paid-plan fields', async () => {
+      const updateDto = {
+        plan: QrCodePlan.PARTY,
+        eventLocation: 'London',
+        // eventDateTime not provided
+        // dressCode not provided
+      };
+
+      const qrCodeToUpdate = {
+        ...mockQrCode,
+        plan: QrCodePlan.PARTY,
+        eventLocation: 'Paris',
+        eventDateTime: new Date('2026-05-15T18:00:00'),
+        dressCode: 'Semi-formal',
+      };
+
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeToUpdate);
+      qrCodeRepository.save = jest.fn().mockResolvedValue({
+        ...qrCodeToUpdate,
+        eventLocation: 'London',
+      });
+
+      await service.updateQrCode('qr-id', updateDto, mockUser);
+
+      const savedQrCode = (qrCodeRepository.save as jest.Mock).mock.calls[0][0];
+      expect(savedQrCode.eventLocation).toBe('London');
+      expect(savedQrCode.eventDateTime).toEqual(
+        new Date('2026-05-15T18:00:00'),
+      );
+      expect(savedQrCode.dressCode).toBe('Semi-formal');
+    });
+  });
+
+  describe('getExpirationForPlan - private method', () => {
+    it('Should return PARTY expiration days when plan is PARTY', async () => {
+      const futureDate = new Date();
+      futureDate.setDate(
+        futureDate.getDate() + APP_CONSTANTS.PARTY_EXPIRATION_DAYS,
+      );
+
+      const createDto = {
+        userId: 'user-id',
+        eventName: 'Party Event',
+        descriptionEvent: 'Test Party',
+        type: QrCodeType.PAID,
+        plan: QrCodePlan.PARTY,
+      };
+
+      userService.getUserById.mockResolvedValue(mockUser);
+      qrCodeRepository.create = jest.fn().mockReturnValue(mockQrCode);
+      qrCodeRepository.save = jest
+        .fn()
+        .mockResolvedValue({ ...mockQrCode, plan: QrCodePlan.PARTY });
+
+      QRCode.toDataURL = jest
+        .fn()
+        .mockResolvedValue('data:image/png;base64,xxx');
+
+      const result = await service.createQrCode(createDto);
+
+      expect(result.qrCode.plan).toBe(QrCodePlan.PARTY);
+      const savedQrCode = (qrCodeRepository.save as jest.Mock).mock.calls[0][0];
+      expect(savedQrCode.expirationDate).toBeDefined();
+    });
+
+    it('Should return CORPORATE expiration days when plan is CORPORATE', async () => {
+      const futureDate = new Date();
+      futureDate.setDate(
+        futureDate.getDate() + APP_CONSTANTS.CORPORATE_EXPIRATION_DAYS,
+      );
+
+      const createDto = {
+        userId: 'user-id',
+        eventName: 'Corporate Event',
+        descriptionEvent: 'Test Corporate',
+        type: QrCodeType.PAID,
+        plan: QrCodePlan.CORPORATE,
+      };
+
+      userService.getUserById.mockResolvedValue(mockUser);
+      qrCodeRepository.create = jest.fn().mockReturnValue(mockQrCode);
+      qrCodeRepository.save = jest.fn().mockResolvedValue({
+        ...mockQrCode,
+        plan: QrCodePlan.CORPORATE,
+      });
+
+      QRCode.toDataURL = jest
+        .fn()
+        .mockResolvedValue('data:image/png;base64,xxx');
+
+      const result = await service.createQrCode(createDto);
+
+      expect(result.qrCode.plan).toBe(QrCodePlan.CORPORATE);
+      const savedQrCode = (qrCodeRepository.save as jest.Mock).mock.calls[0][0];
+      expect(savedQrCode.expirationDate).toBeDefined();
+    });
+
+    it('Should use correct expiration days for each plan', async () => {
+      const createDtoParty = {
+        userId: 'user-id',
+        eventName: 'Party',
+        descriptionEvent: 'Test',
+        type: QrCodeType.PAID,
+        plan: QrCodePlan.PARTY,
+      };
+
+      userService.getUserById.mockResolvedValue(mockUser);
+      qrCodeRepository.create = jest.fn().mockReturnValue(mockQrCode);
+      qrCodeRepository.save = jest.fn().mockResolvedValue({
+        ...mockQrCode,
+        plan: QrCodePlan.PARTY,
+        expirationDate: new Date(
+          Date.now() +
+            APP_CONSTANTS.PARTY_EXPIRATION_DAYS * 24 * 60 * 60 * 1000,
+        ),
+      });
+
+      QRCode.toDataURL = jest
+        .fn()
+        .mockResolvedValue('data:image/png;base64,xxx');
+
+      await service.createQrCode(createDtoParty);
+
+      const partyExpirationCall = (qrCodeRepository.save as jest.Mock).mock
+        .calls[0][0];
+      const partlyExpDate = partyExpirationCall.expirationDate;
+
+      expect(partlyExpDate).toBeDefined();
+    });
+  });
+
+  describe('updateLastUploadAt', () => {
+    it('Should update lastUploadAt with current date', async () => {
+      qrCodeRepository.update = jest.fn().mockResolvedValue(undefined);
+
+      new Date();
+      await service.updateLastUploadAt('qr-id');
+
+      expect(qrCodeRepository.update).toHaveBeenCalledWith('qr-id', {
+        lastUploadAt: expect.any(Date),
+      });
+
+      const updateCall = (qrCodeRepository.update as jest.Mock).mock.calls[0];
+      expect(updateCall[0]).toBe('qr-id');
+      expect(updateCall[1].lastUploadAt).toBeInstanceOf(Date);
+    });
+
+    it('Should set lastUploadAt to a recent timestamp', async () => {
+      qrCodeRepository.update = jest.fn().mockResolvedValue(undefined);
+
+      const beforeCall = Date.now();
+      await service.updateLastUploadAt('qr-id');
+      const afterCall = Date.now();
+
+      const updateCall = (qrCodeRepository.update as jest.Mock).mock.calls[0];
+      const updatedDate = updateCall[1].lastUploadAt.getTime();
+
+      expect(updatedDate).toBeGreaterThanOrEqual(beforeCall);
+      expect(updatedDate).toBeLessThanOrEqual(afterCall);
+    });
+  });
+
+  describe('getQrCodeWithUser', () => {
+    it('Should fetch QR code with user relation', async () => {
+      const qrCodeWithUser = {
+        ...mockQrCode,
+        user: mockUser,
+      };
+
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeWithUser);
+
+      const result = await service.getQrCodeWithUser('qr-id');
+
+      expect(qrCodeRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'qr-id' },
+        relations: ['user'],
+      });
+      expect(result).toEqual(qrCodeWithUser);
+      expect(result.user).toBeDefined();
+    });
+
+    it('Should return null when QR code not found', async () => {
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(null);
+
+      const result = await service.getQrCodeWithUser('nonexistent-id');
+
+      expect(result).toBeNull();
+    });
+
+    it('Should include user information in result', async () => {
+      const qrCodeWithUser = {
+        ...mockQrCode,
+        user: { id: 'user-123', email: 'user@example.com', name: 'User Name' },
+      };
+
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeWithUser);
+
+      const result = await service.getQrCodeWithUser('qr-id');
+
+      expect(result.user).toEqual({
+        id: 'user-123',
+        email: 'user@example.com',
+        name: 'User Name',
+      });
+    });
+  });
+
+  describe('getEventAnalytics', () => {
+    it('Should return event analytics with uploads', async () => {
+      const now = new Date();
+      const uploadDate1 = new Date(now.getTime() - 10000);
+      const uploadDate2 = new Date(now.getTime() - 5000);
+
+      const mockUpload1 = {
+        id: 'upload-1',
+        createdAt: uploadDate1,
+        deletedAt: null,
+      };
+
+      const mockUpload2 = {
+        id: 'upload-2',
+        createdAt: uploadDate2,
+        deletedAt: null,
+      };
+
+      const qrCodeWithUploads = {
+        ...mockQrCode,
+        viewCount: 42,
+        lastUploadAt: uploadDate2,
+        uploads: [mockUpload1, mockUpload2],
+      };
+
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeWithUploads);
+
+      const result = await service.getEventAnalytics('qr-id');
+
+      expect(result.viewCount).toBe(42);
+      expect(result.totalUploads).toBe(2);
+      expect(result.firstUploadAt).toEqual(uploadDate1);
+      expect(result.lastUploadAt).toEqual(uploadDate2);
+    });
+
+    it('Should filter out deleted uploads', async () => {
+      const now = new Date();
+      const uploadDate1 = new Date(now.getTime() - 10000);
+      const uploadDate2 = new Date(now.getTime() - 5000);
+
+      const activeUpload = {
+        id: 'upload-1',
+        createdAt: uploadDate1,
+        deletedAt: null,
+      };
+
+      const deletedUpload = {
+        id: 'upload-2',
+        createdAt: uploadDate2,
+        deletedAt: new Date(now.getTime() - 2000),
+      };
+
+      const qrCodeWithUploads = {
+        ...mockQrCode,
+        viewCount: 50,
+        lastUploadAt: uploadDate1,
+        uploads: [activeUpload, deletedUpload],
+      };
+
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeWithUploads);
+
+      const result = await service.getEventAnalytics('qr-id');
+
+      expect(result.totalUploads).toBe(1);
+      expect(result.firstUploadAt).toEqual(uploadDate1);
+    });
+
+    it('Should return null for first and last upload when no active uploads', async () => {
+      const qrCodeWithoutUploads = {
+        ...mockQrCode,
+        viewCount: 100,
+        lastUploadAt: null,
+        uploads: [],
+      };
+
+      qrCodeRepository.findOne = jest
+        .fn()
+        .mockResolvedValue(qrCodeWithoutUploads);
+
+      const result = await service.getEventAnalytics('qr-id');
+
+      expect(result.totalUploads).toBe(0);
+      expect(result.firstUploadAt).toBeNull();
+      expect(result.lastUploadAt).toBeNull();
+      expect(result.viewCount).toBe(100);
+    });
+
+    it('Should throw NotFoundException when QR code not found', async () => {
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(null);
+
+      await expect(service.getEventAnalytics('nonexistent-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('Should handle uploads with only deleted items', async () => {
+      const now = new Date();
+      const deletedUpload = {
+        id: 'upload-1',
+        createdAt: new Date(now.getTime() - 10000),
+        deletedAt: new Date(now.getTime() - 5000),
+      };
+
+      const qrCodeWithOnlyDeletedUploads = {
+        ...mockQrCode,
+        viewCount: 25,
+        lastUploadAt: null,
+        uploads: [deletedUpload],
+      };
+
+      qrCodeRepository.findOne = jest
+        .fn()
+        .mockResolvedValue(qrCodeWithOnlyDeletedUploads);
+
+      const result = await service.getEventAnalytics('qr-id');
+
+      expect(result.totalUploads).toBe(0);
+      expect(result.firstUploadAt).toBeNull();
+    });
+
+    it('Should sort uploads by creation date correctly', async () => {
+      const uploadDate1 = new Date('2026-01-01T10:00:00');
+      const uploadDate2 = new Date('2026-01-02T10:00:00');
+      const uploadDate3 = new Date('2026-01-03T10:00:00');
+
+      const mockUpload1 = {
+        id: 'upload-1',
+        createdAt: uploadDate2,
+        deletedAt: null,
+      };
+
+      const mockUpload2 = {
+        id: 'upload-2',
+        createdAt: uploadDate1,
+        deletedAt: null,
+      };
+
+      const mockUpload3 = {
+        id: 'upload-3',
+        createdAt: uploadDate3,
+        deletedAt: null,
+      };
+
+      const qrCodeWithUploads = {
+        ...mockQrCode,
+        viewCount: 10,
+        lastUploadAt: uploadDate3,
+        uploads: [mockUpload1, mockUpload2, mockUpload3],
+      };
+
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeWithUploads);
+
+      const result = await service.getEventAnalytics('qr-id');
+
+      expect(result.firstUploadAt).toEqual(uploadDate1);
+    });
+  });
+
+  describe('sendInvites', () => {
+    let emailService: jest.Mocked<EmailService>;
+
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          QrcodeService,
+          {
+            provide: getRepositoryToken(QrCode),
+            useValue: repositoryMockFactory<QrCode>(),
+          },
+          {
+            provide: UserService,
+            useValue: userService,
+          },
+          {
+            provide: CacheService,
+            useValue: cacheService,
+          },
+          {
+            provide: EventEmitter2,
+            useValue: {
+              on: jest.fn(),
+            },
+          },
+          {
+            provide: EmailService,
+            useValue: {
+              sendEmail: jest.fn().mockResolvedValue(undefined),
+            },
+          },
+          {
+            provide: ConfigService,
+            useValue: {
+              get: jest.fn().mockReturnValue('http://localhost:3001'),
+            },
+          },
+        ],
+      }).compile();
+
+      emailService = module.get(EmailService);
+      qrCodeRepository = module.get(getRepositoryToken(QrCode));
+      service = module.get<QrcodeService>(QrcodeService);
+    });
+
+    it('Should send email invites successfully', async () => {
+      const recipients = ['john@example.com', 'jane@example.com'];
+      const user = { name: 'Sender Name', id: 'user-id' };
+
+      const qrCodeMock = {
+        ...mockQrCode,
+        token: 'event-token-123',
+        eventName: 'Birthday Party',
+      };
+
+      cacheService.get = jest.fn().mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeMock);
+
+      const result = await service.sendInvites(
+        'qr-id',
+        recipients,
+        'email',
+        user,
+      );
+
+      expect(result.sent).toBe(2);
+      expect(result.cost).toBe(0.04);
+      expect(emailService.sendEmail).toHaveBeenCalledTimes(2);
+    });
+
+    it('Should build correct invite email content', async () => {
+      const recipients = ['recipient@example.com'];
+      const user = { name: 'John Doe', id: 'user-id' };
+
+      const qrCodeMock = {
+        ...mockQrCode,
+        token: 'event-token-123',
+        eventName: 'Wedding',
+        eventLocation: 'Grand Hotel',
+        eventDateTime: new Date('2026-06-15T18:00:00'),
+        dressCode: 'Formal',
+      };
+
+      cacheService.get = jest.fn().mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeMock);
+
+      await service.sendInvites('qr-id', recipients, 'email', user);
+
+      const emailCall = (emailService.sendEmail as jest.Mock).mock.calls[0];
+      expect(emailCall[0]).toBe('recipient@example.com');
+      expect(emailCall[1]).toContain('Wedding');
+      expect(emailCall[3]).toContain('Grand Hotel');
+    });
+
+    it('Should handle email send failures gracefully', async () => {
+      const recipients = ['success@example.com', 'failure@example.com'];
+      const user = { name: 'Test User', id: 'user-id' };
+
+      const qrCodeMock = {
+        ...mockQrCode,
+        token: 'event-token-123',
+        eventName: 'Test Event',
+      };
+
+      cacheService.get = jest.fn().mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeMock);
+
+      (emailService.sendEmail as jest.Mock)
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error('Send failed'));
+
+      const result = await service.sendInvites(
+        'qr-id',
+        recipients,
+        'email',
+        user,
+      );
+
+      expect(result.sent).toBe(1);
+      expect(result.cost).toBe(0.02);
+    });
+
+    it('Should trim email addresses before sending', async () => {
+      const recipients = ['  test@example.com  ', 'another@example.com'];
+      const user = { name: 'User', id: 'user-id' };
+
+      const qrCodeMock = {
+        ...mockQrCode,
+        token: 'event-token-123',
+        eventName: 'Event',
+      };
+
+      cacheService.get = jest.fn().mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeMock);
+
+      await service.sendInvites('qr-id', recipients, 'email', user);
+
+      const firstCall = (emailService.sendEmail as jest.Mock).mock.calls[0][0];
+      expect(firstCall).toBe('test@example.com');
+    });
+
+    it('Should calculate correct cost for multiple recipients', async () => {
+      const recipients = Array.from(
+        { length: 5 },
+        (_, i) => `user${i}@example.com`,
+      );
+      const user = { name: 'User', id: 'user-id' };
+
+      const qrCodeMock = {
+        ...mockQrCode,
+        token: 'token',
+        eventName: 'Event',
+      };
+
+      cacheService.get = jest.fn().mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeMock);
+
+      const result = await service.sendInvites(
+        'qr-id',
+        recipients,
+        'email',
+        user,
+      );
+
+      expect(result.sent).toBe(5);
+      expect(result.cost).toBe(0.1);
+    });
+
+    it('Should build invite HTML with event details', async () => {
+      const recipients = ['guest@example.com'];
+      const user = { name: 'Host Name', id: 'user-id' };
+
+      const qrCodeMock = {
+        ...mockQrCode,
+        token: 'event-token',
+        eventName: 'Anniversary Party',
+        eventLocation: 'Beach Resort',
+        eventDateTime: new Date('2026-07-20T19:00:00'),
+        dressCode: 'Casual',
+        recommendations: 'Bring sunscreen!',
+      };
+
+      cacheService.get = jest.fn().mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeMock);
+
+      await service.sendInvites('qr-id', recipients, 'email', user);
+
+      const htmlContent = (emailService.sendEmail as jest.Mock).mock
+        .calls[0][3];
+      expect(htmlContent).toContain('Anniversary Party');
+      expect(htmlContent).toContain('Beach Resort');
+      expect(htmlContent).toContain('Casual');
+      expect(htmlContent).toContain('sunscreen');
+    });
+
+    it('Should throw NotFoundException when QR code not found', async () => {
+      const recipients = ['test@example.com'];
+      const user = { name: 'User', id: 'user-id' };
+
+      cacheService.get = jest.fn().mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(null);
+
+      await expect(
+        service.sendInvites('nonexistent-id', recipients, 'email', user),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('Should handle empty recipients list', async () => {
+      const recipients: string[] = [];
+      const user = { name: 'User', id: 'user-id' };
+
+      const qrCodeMock = {
+        ...mockQrCode,
+        token: 'token',
+        eventName: 'Event',
+      };
+
+      cacheService.get = jest.fn().mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeMock);
+
+      const result = await service.sendInvites(
+        'qr-id',
+        recipients,
+        'email',
+        user,
+      );
+
+      expect(result.sent).toBe(0);
+      expect(result.cost).toBe(0);
+    });
+  });
+
+  describe('createQrCode - eventDateTime branch coverage', () => {
+    it('Should pass eventDateTime as Date when not a string', async () => {
+      const dateObj = new Date('2026-06-15T18:00:00Z');
+      const createDto = {
+        userId: 'user-id',
+        eventName: 'Date Event',
+        descriptionEvent: 'Test',
+        type: QrCodeType.FREE,
+        eventDateTime: dateObj,
+      };
+
+      userService.getUserById.mockResolvedValue(mockUser);
+      qrCodeRepository.create = jest.fn().mockReturnValue(mockQrCode);
+      qrCodeRepository.save = jest.fn().mockResolvedValue(mockQrCode);
+      QRCode.toDataURL = jest
+        .fn()
+        .mockResolvedValue('data:image/png;base64,xxx');
+
+      await service.createQrCode(createDto as any);
+
+      expect(qrCodeRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventDateTime: dateObj,
+        }),
+      );
+    });
+
+    it('Should convert eventDateTime string to Date', async () => {
+      const createDto = {
+        userId: 'user-id',
+        eventName: 'String Date Event',
+        descriptionEvent: 'Test',
+        type: QrCodeType.FREE,
+        eventDateTime: '2026-06-15T18:00:00Z',
+      };
+
+      userService.getUserById.mockResolvedValue(mockUser);
+      qrCodeRepository.create = jest.fn().mockReturnValue(mockQrCode);
+      qrCodeRepository.save = jest.fn().mockResolvedValue(mockQrCode);
+      QRCode.toDataURL = jest
+        .fn()
+        .mockResolvedValue('data:image/png;base64,xxx');
+
+      await service.createQrCode(createDto as any);
+
+      const createArg = (qrCodeRepository.create as jest.Mock).mock.calls[0][0];
+      expect(createArg.eventDateTime).toBeInstanceOf(Date);
+    });
+
+    it('Should handle null eventDateTime', async () => {
+      const createDto = {
+        userId: 'user-id',
+        eventName: 'No DateTime Event',
+        descriptionEvent: 'Test',
+        type: QrCodeType.FREE,
+        eventDateTime: null,
+      };
+
+      userService.getUserById.mockResolvedValue(mockUser);
+      qrCodeRepository.create = jest.fn().mockReturnValue(mockQrCode);
+      qrCodeRepository.save = jest.fn().mockResolvedValue(mockQrCode);
+      QRCode.toDataURL = jest
+        .fn()
+        .mockResolvedValue('data:image/png;base64,xxx');
+
+      await service.createQrCode(createDto as any);
+
+      const createArg = (qrCodeRepository.create as jest.Mock).mock.calls[0][0];
+      expect(createArg.eventDateTime).toBeNull();
+    });
+  });
+
+  describe('getQrCodeByToken - increment viewCount branch', () => {
+    it('Should increment viewCount when fetching from database', async () => {
+      cacheService.get = jest.fn().mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(mockQrCode);
+
+      await service.getQrCodeByToken('token-123');
+
+      expect(qrCodeRepository.increment).toHaveBeenCalledWith(
+        { token: 'token-123' },
+        'viewCount',
+        1,
+      );
+    });
+
+    it('Should handle increment failure gracefully', async () => {
+      cacheService.get = jest.fn().mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(mockQrCode);
+      qrCodeRepository.increment = jest
+        .fn()
+        .mockRejectedValue(new Error('DB error'));
+
+      const result = await service.getQrCodeByToken('token-123');
+
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('getEventAnalytics - branch coverage', () => {
+    it('Should handle QR code with null uploads', async () => {
+      const qrCodeNoUploads = {
+        ...mockQrCode,
+        uploads: null,
+        viewCount: 5,
+        lastUploadAt: null,
+      };
+
+      cacheService.get = jest.fn().mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeNoUploads);
+
+      const result = await service.getEventAnalytics('qr-id');
+
+      expect(result.totalUploads).toBe(0);
+      expect(result.firstUploadAt).toBeNull();
+      expect(result.lastUploadAt).toBeNull();
+      expect(result.viewCount).toBe(5);
+    });
+
+    it('Should handle QR code with zero viewCount', async () => {
+      const qrCodeZeroViews = {
+        ...mockQrCode,
+        uploads: [],
+        viewCount: 0,
+        lastUploadAt: new Date(),
+      };
+
+      cacheService.get = jest.fn().mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeZeroViews);
+
+      const result = await service.getEventAnalytics('qr-id');
+
+      expect(result.viewCount).toBe(0);
+      expect(result.lastUploadAt).toBeInstanceOf(Date);
+    });
+  });
+
+  describe('sendInvites - branch coverage', () => {
+    it('Should handle whatsapp channel cost correctly', async () => {
+      const qrCodeMock = {
+        ...mockQrCode,
+        eventName: 'Test Event',
+      };
+
+      cacheService.get = jest.fn().mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeMock);
+
+      const result = await service.sendInvites(
+        'qr-id',
+        ['test@test.com'],
+        'whatsapp',
+        { name: 'Host' },
+      );
+
+      expect(result.sent).toBe(0);
+      expect(result.cost).toBe(0);
+    });
+
+    it('Should use fallback for eventName when null in invite email', async () => {
+      const qrCodeNoName = {
+        ...mockQrCode,
+        eventName: null,
+        eventLocation: null,
+        eventDateTime: null,
+        dressCode: null,
+        recommendations: null,
+      };
+
+      cacheService.get = jest.fn().mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeNoName);
+
+      const emailServiceMock = (service as any).emailService;
+      emailServiceMock.sendEmail = jest.fn().mockResolvedValue(undefined);
+
+      const result = await service.sendInvites(
+        'qr-id',
+        ['test@test.com'],
+        'email',
+        { name: null },
+      );
+
+      expect(result.sent).toBe(1);
+      expect(emailServiceMock.sendEmail).toHaveBeenCalledWith(
+        'test@test.com',
+        expect.stringContaining('um evento'),
+        expect.anything(),
+        expect.stringContaining('Evento'),
+      );
+    });
+
+    it('Should use fallback FRONTEND_URL in sendInvites', async () => {
+      const qrCodeMock = {
+        ...mockQrCode,
+        eventName: 'My Event',
+        eventDateTime: '2026-06-15T18:00:00Z',
+        eventLocation: 'São Paulo',
+        dressCode: 'Casual',
+        recommendations: 'Bring friends!',
+      };
+
+      cacheService.get = jest.fn().mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeMock);
+
+      const emailServiceMock = (service as any).emailService;
+      emailServiceMock.sendEmail = jest.fn().mockResolvedValue(undefined);
+
+      const result = await service.sendInvites(
+        'qr-id',
+        ['test@test.com'],
+        'email',
+        { name: 'Host' },
+      );
+
+      expect(result.sent).toBe(1);
+      expect(emailServiceMock.sendEmail).toHaveBeenCalledWith(
+        'test@test.com',
+        expect.anything(),
+        expect.stringContaining('My Event'),
+        expect.stringContaining('Bring friends!'),
+      );
+    });
+
+    it('Should throw NotFoundException when QR code not found in sendInvites', async () => {
+      cacheService.get = jest.fn().mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(null);
+
+      await expect(
+        service.sendInvites('invalid-id', ['test@test.com'], 'email', {
+          name: 'Host',
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('Should throw NotFoundException via null guard in sendInvites', async () => {
+      jest.spyOn(service, 'getQrCodeById').mockResolvedValue(null as any);
+
+      await expect(
+        service.sendInvites('qr-id', ['test@test.com'], 'email', {
+          name: 'Host',
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('Should use fallback FRONTEND_URL in sendInvites when ConfigService returns undefined', async () => {
+      const configSvc = (service as any).configService;
+      configSvc.get = jest.fn().mockReturnValue(undefined);
+
+      const qrCodeMock = {
+        ...mockQrCode,
+        eventName: 'My Event',
+      };
+      jest.spyOn(service, 'getQrCodeById').mockResolvedValue(qrCodeMock as any);
+
+      const emailSvc = (service as any).emailService;
+      emailSvc.sendEmail = jest.fn().mockResolvedValue(undefined);
+
+      const result = await service.sendInvites(
+        'qr-id',
+        ['test@test.com'],
+        'email',
+        { name: 'Host' },
+      );
+
+      expect(result.sent).toBe(1);
+      expect(emailSvc.sendEmail).toHaveBeenCalledWith(
+        'test@test.com',
+        expect.anything(),
+        expect.stringContaining('localhost3001'),
+        expect.anything(),
+      );
     });
   });
 });

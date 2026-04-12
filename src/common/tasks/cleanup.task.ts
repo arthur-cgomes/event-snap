@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, Between } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { QrCode } from '../../modules/qrcode/entity/qrcode.entity';
 import { Upload } from '../../modules/upload/entity/upload.entity';
 import { subDays, addHours } from 'date-fns';
@@ -17,6 +18,7 @@ export class CleanupTask {
     @InjectRepository(Upload)
     private readonly uploadRepository: Repository<Upload>,
     private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
@@ -130,6 +132,8 @@ export class CleanupTask {
     eventName: string,
     expiresAt: string,
   ): string {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'localhost3001';
     return `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb;">
         <div style="background: linear-gradient(135deg, #F59E0B, #D97706); padding: 32px 24px; text-align: center;">
@@ -146,12 +150,17 @@ export class CleanupTask {
               Após a expiração, não será possível enviar novas fotos ou vídeos para este evento.
             </p>
           </div>
-          <p style="font-size: 14px; color: #4b5563; line-height: 1.6; margin: 0;">
-            Se precisar de mais tempo, faça o upgrade para Premium e estenda o prazo do seu evento.
+          <p style="font-size: 14px; color: #4b5563; line-height: 1.6; margin: 0 0 24px;">
+            Se precisar de mais tempo, faça um upgrade do plano e estenda o prazo do seu evento.
           </p>
+          <div style="text-align: center;">
+            <a href="${frontendUrl}/#/dashboard" style="display: inline-block; background: linear-gradient(135deg, #F59E0B, #D97706); color: white; text-decoration: none; padding: 12px 32px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+              Ver no Dashboard
+            </a>
+          </div>
         </div>
         <div style="background: #f9fafb; padding: 16px 24px; text-align: center; border-top: 1px solid #e5e7eb;">
-          <p style="font-size: 12px; color: #9ca3af; margin: 0;">FotoUai — Suas memórias, compartilhadas com facilidade.</p>
+          <p style="font-size: 12px; color: #9ca3af; margin: 0;">© ${new Date().getFullYear()} FotoUai — Suas memórias, compartilhadas com facilidade.</p>
         </div>
       </div>
     `;

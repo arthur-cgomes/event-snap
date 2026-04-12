@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class Migration1775786610822 implements MigrationInterface {
-  name = 'Migration1775786610822';
+export class Migration1776024511797 implements MigrationInterface {
+  name = 'Migration1776024511797';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -17,7 +17,10 @@ export class Migration1775786610822 implements MigrationInterface {
       `CREATE TYPE "public"."qrcode_type_enum" AS ENUM('FREE', 'PAID', 'RECURRING')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "qrcode" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "active" boolean NOT NULL DEFAULT true, "deleted_at" TIMESTAMP, "token" character varying, "event_name" character varying, "description_event" character varying, "event_color" character varying, "expiration_date" TIMESTAMP, "type" "public"."qrcode_type_enum" NOT NULL DEFAULT 'FREE', "userId" uuid, CONSTRAINT "PK_9aaafe9e77dce17001051dab68a" PRIMARY KEY ("id"))`,
+      `CREATE TYPE "public"."qrcode_plan_enum" AS ENUM('FREE', 'PARTY', 'CORPORATE')`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "qrcode" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "active" boolean NOT NULL DEFAULT true, "deleted_at" TIMESTAMP, "token" character varying, "event_name" character varying, "description_event" character varying, "event_color" character varying, "expiration_date" TIMESTAMP, "type" "public"."qrcode_type_enum" NOT NULL DEFAULT 'FREE', "plan" "public"."qrcode_plan_enum" NOT NULL DEFAULT 'FREE', "eventLocation" character varying, "eventDateTime" TIMESTAMP, "dressCode" character varying, "eventTheme" character varying, "coverImageUrl" character varying, "recommendations" text, "uploadEnabled" boolean NOT NULL DEFAULT false, "galleryEnabled" boolean NOT NULL DEFAULT false, "viewCount" integer NOT NULL DEFAULT '0', "lastUploadAt" TIMESTAMP, "userId" uuid, CONSTRAINT "PK_9aaafe9e77dce17001051dab68a" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE UNIQUE INDEX "IDX_qrcode_token" ON "qrcode" ("token") `,
@@ -29,7 +32,7 @@ export class Migration1775786610822 implements MigrationInterface {
       `CREATE TYPE "public"."user_user_type_enum" AS ENUM('user', 'admin')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "user" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "active" boolean NOT NULL DEFAULT true, "deleted_at" TIMESTAMP, "name" character varying, "phone" character varying, "date_of_birth" character varying, "email" character varying NOT NULL, "password" character varying, "user_type" "public"."user_user_type_enum" NOT NULL DEFAULT 'user', "created_by" character varying, "created_by_id" character varying, "firebase_uid" character varying, "auth_provider" character varying, "last_login" TIMESTAMP, CONSTRAINT "UQ_e12875dfb3b1d92d7d7c5377e22" UNIQUE ("email"), CONSTRAINT "PK_cace4a159ff9f2512dd42373760" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "user" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "active" boolean NOT NULL DEFAULT true, "deleted_at" TIMESTAMP, "name" character varying, "phone" character varying, "date_of_birth" character varying, "email" character varying NOT NULL, "password" character varying, "user_type" "public"."user_user_type_enum" NOT NULL DEFAULT 'user', "created_by" character varying, "created_by_id" character varying, "firebase_uid" character varying, "auth_provider" character varying, "last_login" TIMESTAMP, "notify_on_upload" boolean NOT NULL DEFAULT true, "notify_on_expiration" boolean NOT NULL DEFAULT true, "notify_on_payment" boolean NOT NULL DEFAULT true, CONSTRAINT "UQ_e12875dfb3b1d92d7d7c5377e22" UNIQUE ("email"), CONSTRAINT "PK_cace4a159ff9f2512dd42373760" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_user_firebaseUid" ON "user" ("firebase_uid") `,
@@ -97,6 +100,7 @@ export class Migration1775786610822 implements MigrationInterface {
     await queryRunner.query(`DROP INDEX "public"."IDX_qrcode_userId"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_qrcode_token"`);
     await queryRunner.query(`DROP TABLE "qrcode"`);
+    await queryRunner.query(`DROP TYPE "public"."qrcode_plan_enum"`);
     await queryRunner.query(`DROP TYPE "public"."qrcode_type_enum"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_upload_qrCodeId"`);
     await queryRunner.query(`DROP TABLE "upload"`);

@@ -34,6 +34,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../user/entity/user.entity';
 import { APP_CONSTANTS } from '../../common/constants';
 import { TurnstileService } from '../../common/services/turnstile.service';
+import { UploadRateLimitGuard } from '../../common/guards/upload-rate-limit.guard';
 
 @ApiBearerAuth()
 @ApiTags('Upload')
@@ -46,6 +47,7 @@ export class UploadController {
 
   @Post(':token')
   @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @UseGuards(UploadRateLimitGuard)
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
@@ -78,6 +80,31 @@ export class UploadController {
       }
     }
     return this.uploadService.uploadImage(token, file);
+  }
+
+  @UseGuards(AuthGuard())
+  @Get('gallery/:token')
+  @ApiOperation({
+    summary: 'Obter galeria do evento para convidados autenticados (paginado)',
+  })
+  @ApiQuery({ name: 'take', required: false, type: Number, example: 20 })
+  @ApiQuery({ name: 'skip', required: false, type: Number, example: 0 })
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        items: { type: 'array', items: { type: 'string' } },
+        total: { type: 'number' },
+        skip: { type: 'number', nullable: true },
+      },
+    },
+  })
+  async getGalleryByToken(
+    @Param('token') token: string,
+    @Query('take') take: number = 20,
+    @Query('skip') skip: number = 0,
+  ): Promise<{ items: string[]; total: number; skip: number | null }> {
+    return this.uploadService.getGalleryByToken(token, take, skip);
   }
 
   @UseGuards(AuthGuard())

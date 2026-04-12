@@ -1,6 +1,7 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString, Length } from 'class-validator';
 import { CreateUserDto } from '../../user/dto/create-user.dto';
+import { IsStrongPassword } from '../../../common/validators/password.validator';
 
 export class ConfirmSignupDto extends PartialType(CreateUserDto) {
   @ApiProperty({
@@ -37,10 +38,11 @@ export class ConfirmSignupDto extends PartialType(CreateUserDto) {
 
   @ApiProperty({
     type: String,
-    description: 'Senha do usuário',
+    description:
+      'Senha do usuário (mínimo 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial)',
   })
   @IsNotEmpty()
-  @IsString()
+  @IsStrongPassword()
   password: string;
 
   @ApiProperty({

@@ -29,6 +29,10 @@ import { UserType } from '../../common/enum/user-type.enum';
 import { UserService } from '../user/user.service';
 import { UserCreatedEvent } from '../../common/events/user-created.event';
 import { QrCodeType } from '../../common/enum/qrcode-type.enum';
+import { QrCodePlan } from '../../common/enum/qrcode-plan.enum';
+import { APP_CONSTANTS } from '../../common/constants';
+import { EmailService } from '../email/email.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class QrcodeService {
@@ -40,6 +44,8 @@ export class QrcodeService {
     private readonly qrCodeRepository: Repository<QrCode>,
     private readonly userService: UserService,
     private readonly cacheService: CacheService,
+    private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
   ) {}
 
   @OnEvent('user.created')
@@ -49,7 +55,9 @@ export class QrcodeService {
 
   private async generateWelcomeQrCode(userId: string): Promise<void> {
     const expirationDate = new Date();
-    expirationDate.setDate(expirationDate.getDate() + 7);
+    expirationDate.setDate(
+      expirationDate.getDate() + APP_CONSTANTS.QR_CODE_EXPIRATION_DAYS,
+    );
 
     try {
       await this.createQrCode({
@@ -58,6 +66,7 @@ export class QrcodeService {
         descriptionEvent:
           'QR Code gratuito gerado automaticamente, você pode alterá-lo a qualquer momento.',
         type: QrCodeType.FREE,
+        plan: QrCodePlan.FREE,
         expirationDate: expirationDate,
       });
     } catch (error) {
@@ -77,11 +86,23 @@ export class QrcodeService {
       descriptionEvent,
       eventColor,
       type,
+      plan = QrCodePlan.FREE,
+      eventLocation,
+      eventDateTime,
+      dressCode,
+      eventTheme,
+      coverImageUrl,
+      recommendations,
+      uploadEnabled,
+      galleryEnabled,
     } = createQrcodeDto;
 
     await this.userService.getUserById(userId);
     const token = uuidv4();
-    const expirationUtc = this.resolveExpirationDate(expirationDate);
+    const expirationUtc =
+      expirationDate !== undefined
+        ? this.resolveExpirationDate(expirationDate)
+        : this.getDefaultExpirationDateForPlan(plan);
 
     const qrCode = this.qrCodeRepository.create({
       token,
@@ -91,6 +112,18 @@ export class QrcodeService {
       ...(expirationUtc ? { expirationDate: expirationUtc } : {}),
       eventColor,
       type,
+      plan,
+      eventLocation,
+      eventDateTime:
+        eventDateTime && typeof eventDateTime === 'string'
+          ? new Date(eventDateTime)
+          : eventDateTime,
+      dressCode,
+      eventTheme,
+      coverImageUrl,
+      recommendations,
+      uploadEnabled: uploadEnabled ?? false,
+      galleryEnabled: galleryEnabled ?? false,
     });
 
     const savedQrCode = await this.qrCodeRepository.save(qrCode);
@@ -111,8 +144,7 @@ export class QrcodeService {
       `${this.CACHE_PREFIX}:user:${userId}:*`,
     );
 
-    const frontendUrl =
-      process.env.FRONTEND_URL || 'https://fotouai.up.railway.app';
+    const frontendUrl = process.env.FRONTEND_URL || 'localhost3001';
     const qrData = `${frontendUrl}/#/event/${token}`;
 
     const qrCodeImage = await QRCode.toDataURL(qrData);
@@ -150,6 +182,51 @@ export class QrcodeService {
       );
       if (candidate) {
         qrcode.expirationDate = candidate;
+      }
+    }
+
+    if (updateQrcodeDto.plan !== undefined) {
+      qrcode.plan = updateQrcodeDto.plan;
+    }
+
+    if (updateQrcodeDto.uploadEnabled !== undefined) {
+      qrcode.uploadEnabled = updateQrcodeDto.uploadEnabled;
+    }
+
+    const isPaidPlan =
+      qrcode.plan === QrCodePlan.PARTY || qrcode.plan === QrCodePlan.CORPORATE;
+
+    if (isPaidPlan) {
+      if (updateQrcodeDto.eventLocation !== undefined) {
+        qrcode.eventLocation = updateQrcodeDto.eventLocation;
+      }
+
+      if (updateQrcodeDto.eventDateTime !== undefined) {
+        qrcode.eventDateTime = new Date(updateQrcodeDto.eventDateTime);
+      }
+
+      if (updateQrcodeDto.dressCode !== undefined) {
+        qrcode.dressCode = updateQrcodeDto.dressCode;
+      }
+
+      if (updateQrcodeDto.eventTheme !== undefined) {
+        qrcode.eventTheme = updateQrcodeDto.eventTheme;
+      }
+
+      if (updateQrcodeDto.coverImageUrl !== undefined) {
+        qrcode.coverImageUrl = updateQrcodeDto.coverImageUrl;
+      }
+
+      if (updateQrcodeDto.recommendations !== undefined) {
+        qrcode.recommendations = updateQrcodeDto.recommendations;
+      }
+
+      if (updateQrcodeDto.galleryEnabled !== undefined) {
+        qrcode.galleryEnabled = updateQrcodeDto.galleryEnabled;
+      }
+
+      if (typeof updateQrcodeDto.eventColor === 'string') {
+        qrcode.eventColor = updateQrcodeDto.eventColor;
       }
     }
 
@@ -282,6 +359,8 @@ export class QrcodeService {
 
     const ttl = this.calculateCacheTTL(qrcode.expirationDate);
     await this.cacheService.set(cacheKey, qrcode, ttl);
+
+    this.qrCodeRepository.increment({ token }, 'viewCount', 1).catch(() => {});
 
     return qrcode;
   }
@@ -416,6 +495,28 @@ export class QrcodeService {
     return candidate;
   }
 
+  private getDefaultExpirationDateForPlan(plan: QrCodePlan): Date {
+    const expirationDate = new Date();
+    switch (plan) {
+      case QrCodePlan.FREE:
+        expirationDate.setDate(
+          expirationDate.getDate() + APP_CONSTANTS.QR_CODE_EXPIRATION_DAYS,
+        );
+        break;
+      case QrCodePlan.PARTY:
+        expirationDate.setDate(
+          expirationDate.getDate() + APP_CONSTANTS.PARTY_EXPIRATION_DAYS,
+        );
+        break;
+      case QrCodePlan.CORPORATE:
+        expirationDate.setDate(
+          expirationDate.getDate() + APP_CONSTANTS.CORPORATE_EXPIRATION_DAYS,
+        );
+        break;
+    }
+    return expirationDate;
+  }
+
   private calculateCacheTTL(expirationDate: Date | null): number {
     if (!expirationDate) {
       return this.CACHE_TTL;
@@ -438,5 +539,125 @@ export class QrcodeService {
     await this.cacheService.del(`${this.CACHE_PREFIX}:id:${id}`);
     await this.cacheService.del(`${this.CACHE_PREFIX}:token:${token}`);
     await this.cacheService.delByPattern(`${this.CACHE_PREFIX}:stats:*`);
+  }
+
+  async updateLastUploadAt(qrCodeId: string): Promise<void> {
+    await this.qrCodeRepository.update(qrCodeId, { lastUploadAt: new Date() });
+  }
+
+  async getQrCodeWithUser(qrCodeId: string): Promise<QrCode> {
+    return this.qrCodeRepository.findOne({
+      where: { id: qrCodeId },
+      relations: ['user'],
+    });
+  }
+
+  async getEventAnalytics(qrCodeId: string): Promise<{
+    viewCount: number;
+    firstUploadAt: Date | null;
+    lastUploadAt: Date | null;
+    totalUploads: number;
+  }> {
+    const qrCode = await this.qrCodeRepository.findOne({
+      where: { id: qrCodeId },
+      relations: ['uploads'],
+    });
+
+    if (!qrCode) {
+      throw new NotFoundException('QR Code not found');
+    }
+
+    const activeUploads = (qrCode.uploads || []).filter((u) => !u.deletedAt);
+    const sortedByDate = activeUploads
+      .filter((u) => u.createdAt)
+      .sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+
+    return {
+      viewCount: qrCode.viewCount || 0,
+      firstUploadAt:
+        sortedByDate.length > 0 ? new Date(sortedByDate[0].createdAt) : null,
+      lastUploadAt: qrCode.lastUploadAt || null,
+      totalUploads: activeUploads.length,
+    };
+  }
+
+  async sendInvites(
+    qrCodeId: string,
+    recipients: string[],
+    channel: 'email' | 'whatsapp',
+    user: any,
+  ): Promise<{ sent: number; cost: number }> {
+    const qrCode = await this.getQrCodeById(qrCodeId);
+    if (!qrCode) throw new NotFoundException('QR Code não encontrado');
+
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'localhost3001';
+    const eventUrl = `${frontendUrl}/#/event/${qrCode.token}`;
+    let sent = 0;
+    const costPerUnit = channel === 'email' ? 0.02 : 0.4;
+
+    if (channel === 'email') {
+      for (const email of recipients) {
+        try {
+          await this.emailService.sendEmail(
+            email.trim(),
+            `Você foi convidado para ${qrCode.eventName || 'um evento'} no FotoUai!`,
+            `Olá! Você foi convidado para o evento "${qrCode.eventName}". Acesse: ${eventUrl}`,
+            this.buildInviteEmailHtml(qrCode, eventUrl, user.name || ''),
+          );
+          sent++;
+        } catch (err) {
+          console.error(`Failed to send invite to ${email}:`, err);
+        }
+      }
+    }
+
+    return { sent, cost: sent * costPerUnit };
+  }
+
+  private buildInviteEmailHtml(
+    qrCode: any,
+    eventUrl: string,
+    senderName: string,
+  ): string {
+    const details = [
+      qrCode.eventDateTime
+        ? `Data: ${new Date(qrCode.eventDateTime).toLocaleDateString('pt-BR')}`
+        : '',
+      qrCode.eventLocation ? `Local: ${qrCode.eventLocation}` : '',
+      qrCode.dressCode ? `Traje: ${qrCode.dressCode}` : '',
+    ]
+      .filter(Boolean)
+      .join('<br/>');
+
+    return `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb;">
+        <div style="background: linear-gradient(135deg, #6366f1, #4f46e5); padding: 32px 24px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">FotoUai</h1>
+          <p style="color: #e0e7ff; margin: 8px 0 0; font-size: 14px;">Você foi convidado!</p>
+        </div>
+        <div style="padding: 32px 24px;">
+          <p style="font-size: 16px; color: #1f2937; margin: 0 0 16px;">
+            <strong>${senderName}</strong> convidou você para o evento:
+          </p>
+          <div style="background: #f5f3ff; border-radius: 8px; padding: 16px; margin: 0 0 24px;">
+            <p style="font-size: 18px; color: #4f46e5; margin: 0 0 8px; font-weight: 700;">${qrCode.eventName || 'Evento'}</p>
+            ${details ? `<p style="font-size: 13px; color: #6b7280; margin: 0; line-height: 1.8;">${details}</p>` : ''}
+            ${qrCode.recommendations ? `<p style="font-size: 12px; color: #9ca3af; margin: 8px 0 0;">Dica: ${qrCode.recommendations}</p>` : ''}
+          </div>
+          <div style="text-align: center;">
+            <a href="${eventUrl}" style="display: inline-block; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-weight: 700; font-size: 15px;">
+              Enviar Fotos
+            </a>
+          </div>
+        </div>
+        <div style="background: #f9fafb; padding: 16px 24px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="font-size: 12px; color: #9ca3af; margin: 0;">© ${new Date().getFullYear()} FotoUai — Suas memórias, compartilhadas com facilidade.</p>
+        </div>
+      </div>
+    `;
   }
 }

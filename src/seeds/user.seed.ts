@@ -8,6 +8,7 @@ import { Banner } from '../modules/banner/entity/banner.entity';
 import { Payment } from '../modules/payment/entity/payment.entity';
 import { UserType } from '../common/enum/user-type.enum';
 import { QrCodeType } from '../common/enum/qrcode-type.enum';
+import { QrCodePlan } from '../common/enum/qrcode-plan.enum';
 
 config();
 
@@ -38,6 +39,9 @@ async function runSeed() {
       email: 'admin@fotouai.com.br',
       password: '102030@Aa',
       userType: UserType.ADMIN,
+      notifyOnUpload: true,
+      notifyOnExpiration: true,
+      notifyOnPayment: true,
     },
     {
       name: 'Arthur Dev',
@@ -46,6 +50,9 @@ async function runSeed() {
       userType: UserType.USER,
       phone: '11999999999',
       dateOfBirth: '1995-01-15',
+      notifyOnUpload: true,
+      notifyOnExpiration: true,
+      notifyOnPayment: true,
     },
   ];
 
@@ -79,6 +86,10 @@ async function runSeed() {
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + 30);
 
+      const eventDateTime = new Date();
+      eventDateTime.setDate(eventDateTime.getDate() + 14);
+      eventDateTime.setHours(19, 0, 0, 0);
+
       const qrCode = qrCodeRepository.create({
         token: uuidv4(),
         eventName: 'Aniversário do Arthur',
@@ -87,6 +98,14 @@ async function runSeed() {
         eventColor: '#6366f1',
         expirationDate,
         type: QrCodeType.FREE,
+        plan: QrCodePlan.FREE,
+        eventLocation: 'São Paulo, SP',
+        eventDateTime,
+        dressCode: '🎉',
+        recommendations: 'Traga sua câmera e muita disposição!',
+        uploadEnabled: true,
+        galleryEnabled: false,
+        viewCount: 0,
         user: arthurUser,
       });
 

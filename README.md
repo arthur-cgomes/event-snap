@@ -10,7 +10,7 @@ API REST para a plataforma FotoUai, construida com NestJS 11, TypeORM, PostgreSQ
 - **Cache**: Redis (ioredis)
 - **Storage**: Supabase Storage (uploads de imagens)
 - **Auth**: JWT (Passport.js) com blacklist via Redis + Social Login (Firebase)
-- **Pagamentos**: Stripe (checkout, webhooks)
+- **Pagamentos**: Stripe (checkout, webhooks, reembolsos)
 - **Email**: Resend + Brevo (nodemailer)
 - **CAPTCHA**: Cloudflare Turnstile
 - **Docs**: Swagger (disponivel em `/api`)
@@ -90,17 +90,17 @@ src/
     upload/         # Upload de imagens (Supabase Storage)
     banner/         # Banners do dashboard (CRUD admin)
     email/          # Servico de envio de emails (Resend + Brevo)
-    payment/        # Pagamentos (Stripe checkout, webhooks)
+    payment/        # Pagamentos (Stripe checkout, webhooks, reembolsos)
     health-check/   # Health check endpoint
   common/
     constants.ts        # Constantes centralizadas
     decorators/         # @CurrentUser, @Roles
     dto/                # DTOs compartilhados (paginacao)
     entity/             # BaseEntity, AuditLog
-    enum/               # UserType, QRCodeType
+    enum/               # UserType, QrCodeType, QrCodePlan, PaymentStatus
     events/             # UserCreatedEvent (EventEmitter2)
     filters/            # GlobalExceptionFilter
-    guards/             # RolesGuard
+    guards/             # RolesGuard, UploadRateLimitGuard
     interceptors/       # ResponseInterceptor
     logger/             # AppLoggerService
     middleware/          # CsrfMiddleware
@@ -163,16 +163,20 @@ Prefixo global: `/api/v1` (exceto health-check)
 
 | Metodo | Rota | Auth | Descricao |
 |--------|------|------|-----------|
-| POST | `/:token` | - | Upload de imagem (max 10/min) |
-| GET | `/:token` | JWT | Lista URLs dos uploads (paginado) |
+| POST | `/:token` | - | Upload de imagem (max 10/min + 30/5min por IP) |
+| GET | `/gallery/:token` | JWT | Galeria do evento para convidados (paginado) |
+| GET | `/:token` | JWT | Lista URLs dos uploads do dono (paginado) |
 | DELETE | `/` | JWT | Remove arquivos por URL |
 
 ### Payment (`/api/v1/payment`)
 
 | Metodo | Rota | Auth | Descricao |
 |--------|------|------|-----------|
-| POST | `/create-checkout` | JWT | Cria sessao de checkout Stripe |
-| POST | `/webhook` | - | Webhook do Stripe |
+| POST | `/checkout` | JWT | Cria sessao de checkout Stripe |
+| POST | `/webhook` | - | Webhook do Stripe (checkout.session.completed, charge.refunded) |
+| POST | `/refund/:paymentId` | JWT | Solicita reembolso de pagamento |
+| GET | `/history` | JWT | Historico de pagamentos do usuario |
+| GET | `/status/:qrCodeId` | JWT | Status de pagamento de um QR Code |
 
 ### Banner (`/api/v1/banner`)
 
@@ -197,7 +201,7 @@ Prefixo global: `/api/v1` (exceto health-check)
 - **JWT + Blacklist**: Tokens invalidados no logout via Redis
 - **RBAC**: Role-based access control com `@Roles(UserType.ADMIN)`
 - **CSRF**: Header customizado `X-Requested-With: FotoUai`
-- **Rate Limiting**: Global 100 req/min, auth 3-5 req/min, upload 10 req/min
+- **Rate Limiting**: Global 100 req/min, auth 3-5 req/min, upload 10 req/min (Throttle) + 30 uploads/5min por IP (UploadRateLimitGuard via Redis)
 - **Senhas fortes**: Min 8 chars, maiuscula, minuscula, numero, especial
 - **CORS**: Configuravel via env, `credentials: true`
 - **Validation**: DTOs com class-validator, whitelist + forbidNonWhitelisted

@@ -8,8 +8,10 @@ import { Repository } from 'typeorm';
 import { Upload } from '../entity/upload.entity';
 import { UploadService } from '../upload.service';
 import { QrcodeService } from '../../qrcode/qrcode.service';
+import { EmailService } from '../../email/email.service';
 import { CacheService } from '../../../common/services/cache.service';
 import { QrCodeType } from '../../../common/enum/qrcode-type.enum';
+import { QrCodePlan } from '../../../common/enum/qrcode-plan.enum';
 
 const mockSharpInstance = {
   resize: jest.fn().mockReturnThis(),
@@ -41,6 +43,7 @@ describe('UploadService', () => {
   let service: UploadService;
   let uploadRepository: jest.Mocked<Repository<Upload>>;
   let qrcodeService: jest.Mocked<QrcodeService>;
+  let emailService: jest.Mocked<EmailService>;
   let cacheService: jest.Mocked<CacheService>;
 
   beforeEach(async () => {
@@ -55,6 +58,12 @@ describe('UploadService', () => {
 
     qrcodeService = {
       getQrCodeByToken: jest.fn(),
+      getQrCodeWithUser: jest.fn(),
+      updateLastUploadAt: jest.fn().mockResolvedValue(undefined),
+    } as any;
+
+    emailService = {
+      sendEmail: jest.fn(),
     } as any;
 
     cacheService = {
@@ -76,6 +85,10 @@ describe('UploadService', () => {
           useValue: qrcodeService,
         },
         {
+          provide: EmailService,
+          useValue: emailService,
+        },
+        {
           provide: CacheService,
           useValue: cacheService,
         },
@@ -85,7 +98,12 @@ describe('UploadService', () => {
       .useValue(uploadRepository)
       .compile();
 
-    service = new UploadService(uploadRepository, qrcodeService, cacheService);
+    service = new UploadService(
+      uploadRepository,
+      qrcodeService,
+      emailService,
+      cacheService,
+    );
   });
 
   afterEach(() => {
@@ -581,6 +599,505 @@ describe('UploadService', () => {
       const result = await service.getSignedUrls(urls);
 
       expect(result[0]).toBe('https://example.com/file1.jpg');
+    });
+  });
+
+  describe('uploadImage - First Upload Email Notification', () => {
+    const mockQrCode = {
+      id: 'qr-1',
+      type: QrCodeType.PAID,
+      token: 'token-123',
+      eventName: 'Test Event',
+      plan: QrCodePlan.PARTY,
+    } as any;
+    const mockFile = {
+      buffer: Buffer.from([0xff, 0xd8, 0xff]),
+      mimetype: 'image/jpeg',
+      originalname: 'test.jpg',
+    } as any;
+
+    it('Should send email notification on first upload when user has email and notifyOnUpload !== false', async () => {
+      qrcodeService.getQrCodeByToken.mockResolvedValue(mockQrCode);
+      qrcodeService.getQrCodeWithUser.mockResolvedValue({
+        id: 'qr-1',
+        user: {
+          id: 'user-1',
+          email: 'user@example.com',
+          name: 'John Doe',
+          notifyOnUpload: true,
+        },
+      } as any);
+
+      mockSharpInstance.toBuffer.mockResolvedValue(Buffer.from('optimized'));
+
+      const mockStorageFrom = {
+        upload: jest.fn().mockResolvedValue({ error: null }),
+        getPublicUrl: jest.fn().mockReturnValue({
+          data: { publicUrl: 'https://example.com/test.webp' },
+        }),
+      };
+      mockSupabaseStorage.from.mockReturnValue(mockStorageFrom as any);
+
+      uploadRepository.create.mockReturnValue({
+        fileUrl: 'https://example.com/test.webp',
+      } as any);
+      uploadRepository.save.mockResolvedValue({ id: 'upload-1' } as any);
+      uploadRepository.count.mockResolvedValue(0);
+      cacheService.get.mockResolvedValue(null);
+
+      await service.uploadImage('token-123', mockFile);
+
+      expect(qrcodeService.getQrCodeWithUser).toHaveBeenCalledWith('qr-1');
+      expect(emailService.sendEmail).toHaveBeenCalled();
+      expect(emailService.sendEmail).toHaveBeenCalledWith(
+        'user@example.com',
+        expect.stringContaining('primeira foto'),
+        expect.any(String),
+        expect.any(String),
+      );
+    });
+
+    it('Should not send email when user has notifyOnUpload === false', async () => {
+      qrcodeService.getQrCodeByToken.mockResolvedValue(mockQrCode);
+      qrcodeService.getQrCodeWithUser.mockResolvedValue({
+        id: 'qr-1',
+        user: {
+          id: 'user-1',
+          email: 'user@example.com',
+          name: 'John Doe',
+          notifyOnUpload: false,
+        },
+      } as any);
+
+      mockSharpInstance.toBuffer.mockResolvedValue(Buffer.from('optimized'));
+
+      const mockStorageFrom = {
+        upload: jest.fn().mockResolvedValue({ error: null }),
+        getPublicUrl: jest.fn().mockReturnValue({
+          data: { publicUrl: 'https://example.com/test.webp' },
+        }),
+      };
+      mockSupabaseStorage.from.mockReturnValue(mockStorageFrom as any);
+
+      uploadRepository.create.mockReturnValue({
+        fileUrl: 'https://example.com/test.webp',
+      } as any);
+      uploadRepository.save.mockResolvedValue({ id: 'upload-1' } as any);
+      uploadRepository.count.mockResolvedValue(0);
+      cacheService.get.mockResolvedValue(null);
+
+      await service.uploadImage('token-123', mockFile);
+
+      expect(emailService.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('Should not send email when user has no email', async () => {
+      qrcodeService.getQrCodeByToken.mockResolvedValue(mockQrCode);
+      qrcodeService.getQrCodeWithUser.mockResolvedValue({
+        id: 'qr-1',
+        user: {
+          id: 'user-1',
+          email: null,
+          name: 'John Doe',
+          notifyOnUpload: true,
+        },
+      } as any);
+
+      mockSharpInstance.toBuffer.mockResolvedValue(Buffer.from('optimized'));
+
+      const mockStorageFrom = {
+        upload: jest.fn().mockResolvedValue({ error: null }),
+        getPublicUrl: jest.fn().mockReturnValue({
+          data: { publicUrl: 'https://example.com/test.webp' },
+        }),
+      };
+      mockSupabaseStorage.from.mockReturnValue(mockStorageFrom as any);
+
+      uploadRepository.create.mockReturnValue({
+        fileUrl: 'https://example.com/test.webp',
+      } as any);
+      uploadRepository.save.mockResolvedValue({ id: 'upload-1' } as any);
+      uploadRepository.count.mockResolvedValue(0);
+      cacheService.get.mockResolvedValue(null);
+
+      await service.uploadImage('token-123', mockFile);
+
+      expect(emailService.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('Should catch and log email sending errors on first upload', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      qrcodeService.getQrCodeByToken.mockResolvedValue(mockQrCode);
+      qrcodeService.getQrCodeWithUser.mockResolvedValue({
+        id: 'qr-1',
+        user: {
+          id: 'user-1',
+          email: 'user@example.com',
+          name: 'John Doe',
+          notifyOnUpload: true,
+        },
+      } as any);
+
+      emailService.sendEmail.mockRejectedValue(
+        new Error('Email service error'),
+      );
+
+      mockSharpInstance.toBuffer.mockResolvedValue(Buffer.from('optimized'));
+
+      const mockStorageFrom = {
+        upload: jest.fn().mockResolvedValue({ error: null }),
+        getPublicUrl: jest.fn().mockReturnValue({
+          data: { publicUrl: 'https://example.com/test.webp' },
+        }),
+      };
+      mockSupabaseStorage.from.mockReturnValue(mockStorageFrom as any);
+
+      uploadRepository.create.mockReturnValue({
+        fileUrl: 'https://example.com/test.webp',
+      } as any);
+      uploadRepository.save.mockResolvedValue({ id: 'upload-1' } as any);
+      uploadRepository.count.mockResolvedValue(0);
+      cacheService.get.mockResolvedValue(null);
+
+      // Should not throw, should just log the error
+      const result = await service.uploadImage('token-123', mockFile);
+
+      expect(result.id).toBe('upload-1');
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to send first upload notification:',
+        expect.any(Error),
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('Should not send email notification when not first upload (currentUploads > 0)', async () => {
+      qrcodeService.getQrCodeByToken.mockResolvedValue(mockQrCode);
+
+      mockSharpInstance.toBuffer.mockResolvedValue(Buffer.from('optimized'));
+
+      const mockStorageFrom = {
+        upload: jest.fn().mockResolvedValue({ error: null }),
+        getPublicUrl: jest.fn().mockReturnValue({
+          data: { publicUrl: 'https://example.com/test.webp' },
+        }),
+      };
+      mockSupabaseStorage.from.mockReturnValue(mockStorageFrom as any);
+
+      uploadRepository.create.mockReturnValue({
+        fileUrl: 'https://example.com/test.webp',
+      } as any);
+      uploadRepository.save.mockResolvedValue({ id: 'upload-2' } as any);
+      uploadRepository.count.mockResolvedValue(5); // Not first upload
+      cacheService.get.mockResolvedValue(null);
+
+      await service.uploadImage('token-123', mockFile);
+
+      expect(qrcodeService.getQrCodeWithUser).not.toHaveBeenCalled();
+      expect(emailService.sendEmail).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getMaxUploadsForPlan', () => {
+    it('Should return MAX_FILES_FREE_QRCODE for FREE plan', () => {
+      const maxUploads = (service as any).getMaxUploadsForPlan(QrCodePlan.FREE);
+      expect(maxUploads).toBe(10); // APP_CONSTANTS.MAX_FILES_FREE_QRCODE
+    });
+
+    it('Should return MAX_FILES_PARTY_QRCODE for PARTY plan', () => {
+      const maxUploads = (service as any).getMaxUploadsForPlan(
+        QrCodePlan.PARTY,
+      );
+      expect(maxUploads).toBe(100); // APP_CONSTANTS.MAX_FILES_PARTY_QRCODE
+    });
+
+    it('Should return null (unlimited) for CORPORATE plan', () => {
+      const maxUploads = (service as any).getMaxUploadsForPlan(
+        QrCodePlan.CORPORATE,
+      );
+      expect(maxUploads).toBeNull();
+    });
+
+    it('Should return MAX_FILES_FREE_QRCODE for unknown plan', () => {
+      const maxUploads = (service as any).getMaxUploadsForPlan('UNKNOWN_PLAN');
+      expect(maxUploads).toBe(10); // APP_CONSTANTS.MAX_FILES_FREE_QRCODE
+    });
+  });
+
+  describe('getGalleryByToken', () => {
+    it('Should throw NotFoundException if QR code not found', async () => {
+      qrcodeService.getQrCodeByToken.mockResolvedValue(null);
+
+      await expect(service.getGalleryByToken('invalid-token')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('Should throw ForbiddenException if gallery is not enabled', async () => {
+      const mockQrCode = {
+        id: 'qr-1',
+        token: 'token-123',
+        galleryEnabled: false,
+      } as any;
+      qrcodeService.getQrCodeByToken.mockResolvedValue(mockQrCode);
+
+      await expect(service.getGalleryByToken('token-123')).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('Should return cached gallery result if available', async () => {
+      const mockQrCode = {
+        id: 'qr-1',
+        token: 'token-123',
+        galleryEnabled: true,
+      } as any;
+      qrcodeService.getQrCodeByToken.mockResolvedValue(mockQrCode);
+
+      const cachedResult = {
+        items: ['url1', 'url2'],
+        total: 2,
+        skip: null,
+      };
+      cacheService.get.mockResolvedValue(cachedResult);
+
+      const result = await service.getGalleryByToken('token-123');
+
+      expect(result).toEqual(cachedResult);
+      expect(uploadRepository.findAndCount).not.toHaveBeenCalled();
+    });
+
+    it('Should fetch gallery from DB and cache when not cached', async () => {
+      const mockQrCode = {
+        id: 'qr-1',
+        token: 'token-123',
+        galleryEnabled: true,
+      } as any;
+      qrcodeService.getQrCodeByToken.mockResolvedValue(mockQrCode);
+
+      uploadRepository.findAndCount.mockResolvedValue([
+        [
+          {
+            id: 'upload-1',
+            fileUrl: 'https://example.com/file1.jpg',
+            createdAt: new Date(),
+          },
+          {
+            id: 'upload-2',
+            fileUrl: 'https://example.com/file2.jpg',
+            createdAt: new Date(),
+          },
+        ],
+        2,
+      ] as any);
+
+      cacheService.get.mockResolvedValue(null);
+
+      const mockStorageFrom = {
+        createSignedUrl: jest.fn().mockResolvedValue({
+          data: { signedUrl: 'https://signed.url' },
+          error: null,
+        }),
+        getPublicUrl: jest.fn(),
+      };
+      mockSupabaseStorage.from.mockReturnValue(mockStorageFrom as any);
+
+      const result = await service.getGalleryByToken('token-123');
+
+      expect(result.items.length).toBe(2);
+      expect(result.total).toBe(2);
+      expect(cacheService.set).toHaveBeenCalled();
+    });
+
+    it('Should handle gallery pagination with skip null when no more items', async () => {
+      const mockQrCode = {
+        id: 'qr-1',
+        token: 'token-123',
+        galleryEnabled: true,
+      } as any;
+      qrcodeService.getQrCodeByToken.mockResolvedValue(mockQrCode);
+
+      uploadRepository.findAndCount.mockResolvedValue([
+        [
+          { id: 'upload-1', fileUrl: 'url1', createdAt: new Date() },
+          { id: 'upload-2', fileUrl: 'url2', createdAt: new Date() },
+        ],
+        2,
+      ] as any);
+
+      cacheService.get.mockResolvedValue(null);
+
+      const mockStorageFrom = {
+        createSignedUrl: jest.fn().mockResolvedValue({
+          data: { signedUrl: 'https://signed.url' },
+          error: null,
+        }),
+        getPublicUrl: jest.fn(),
+      };
+      mockSupabaseStorage.from.mockReturnValue(mockStorageFrom as any);
+
+      const result = await service.getGalleryByToken('token-123', 20, 0);
+
+      expect(result.skip).toBeNull();
+      expect(result.total).toBe(2);
+    });
+
+    it('Should calculate next skip correctly for gallery pagination', async () => {
+      const mockQrCode = {
+        id: 'qr-1',
+        token: 'token-123',
+        galleryEnabled: true,
+      } as any;
+      qrcodeService.getQrCodeByToken.mockResolvedValue(mockQrCode);
+
+      const uploads = Array.from({ length: 10 }, (_, i) => ({
+        id: `upload-${i}`,
+        fileUrl: `url${i}`,
+        createdAt: new Date(),
+      }));
+      uploadRepository.findAndCount.mockResolvedValue([uploads, 50] as any);
+
+      cacheService.get.mockResolvedValue(null);
+
+      const mockStorageFrom = {
+        createSignedUrl: jest.fn().mockResolvedValue({
+          data: { signedUrl: 'https://signed.url' },
+          error: null,
+        }),
+        getPublicUrl: jest.fn(),
+      };
+      mockSupabaseStorage.from.mockReturnValue(mockStorageFrom as any);
+
+      const result = await service.getGalleryByToken('token-123', 10, 0);
+
+      expect(result.skip).toBe(10);
+      expect(result.total).toBe(50);
+    });
+  });
+
+  describe('buildFirstUploadHtml', () => {
+    it('Should generate valid HTML email template for first upload', () => {
+      const html = (service as any).buildFirstUploadHtml(
+        'John Doe',
+        'My Event',
+        'http://localhost:3001',
+      );
+
+      expect(html).toContain('John Doe');
+      expect(html).toContain('My Event');
+      expect(html).toContain('http://localhost:3001');
+      expect(html).toContain('FotoUai');
+      expect(html).toContain('Primeira foto recebida');
+      expect(html).toContain('Ver no Dashboard');
+    });
+
+    it('Should include current year in footer', () => {
+      const currentYear = new Date().getFullYear();
+      const html = (service as any).buildFirstUploadHtml(
+        'Jane Doe',
+        'Test Event',
+        'http://example.com',
+      );
+
+      expect(html).toContain(currentYear.toString());
+    });
+
+    it('Should generate HTML with proper styling and structure', () => {
+      const html = (service as any).buildFirstUploadHtml(
+        'Test User',
+        'Test Event',
+        'http://localhost:3001',
+      );
+
+      expect(html).toContain('font-family');
+      expect(html).toContain('background');
+      expect(html).toContain('padding');
+      expect(html).toContain('border-radius');
+    });
+  });
+
+  describe('uploadImage - first upload email fallback branches', () => {
+    const mockQrCode = {
+      id: 'qr-1',
+      type: QrCodeType.PAID,
+      token: 'token-123',
+      eventName: null,
+    } as any;
+    const mockFile = {
+      buffer: Buffer.from([0xff, 0xd8, 0xff]),
+      mimetype: 'image/jpeg',
+      originalname: 'test.jpg',
+    } as any;
+
+    it('Should use fallback strings when user.name and qrCode.eventName are null', async () => {
+      qrcodeService.getQrCodeByToken.mockResolvedValue(mockQrCode);
+      cacheService.get.mockResolvedValue(null);
+      uploadRepository.count.mockResolvedValue(0);
+      mockSharpInstance.toBuffer.mockResolvedValue(Buffer.from('optimized'));
+
+      const mockStorageFrom = {
+        upload: jest.fn().mockResolvedValue({ error: null }),
+        getPublicUrl: jest.fn().mockReturnValue({
+          data: { publicUrl: 'https://example.com/test.webp' },
+        }),
+      };
+      mockSupabaseStorage.from.mockReturnValue(mockStorageFrom as any);
+
+      uploadRepository.create.mockReturnValue({
+        fileUrl: 'https://example.com/test.webp',
+      } as any);
+      uploadRepository.save.mockResolvedValue({ id: 'upload-1' } as any);
+
+      const qrWithUser = {
+        user: { email: 'user@test.com', name: null, notifyOnUpload: true },
+      };
+      qrcodeService.getQrCodeWithUser.mockResolvedValue(qrWithUser as any);
+      emailService.sendEmail.mockResolvedValue(undefined);
+
+      await service.uploadImage('token-123', mockFile);
+
+      expect(emailService.sendEmail).toHaveBeenCalledWith(
+        'user@test.com',
+        expect.anything(),
+        expect.stringContaining('Olá !'),
+        expect.anything(),
+      );
+      expect(emailService.sendEmail).toHaveBeenCalledWith(
+        'user@test.com',
+        expect.anything(),
+        expect.stringContaining('Seu Evento'),
+        expect.anything(),
+      );
+    });
+
+    it('Should handle updateLastUploadAt error silently', async () => {
+      qrcodeService.getQrCodeByToken.mockResolvedValue({
+        ...mockQrCode,
+        eventName: 'My Event',
+      } as any);
+      cacheService.get.mockResolvedValue(null);
+      uploadRepository.count.mockResolvedValue(1);
+      mockSharpInstance.toBuffer.mockResolvedValue(Buffer.from('optimized'));
+
+      const mockStorageFrom = {
+        upload: jest.fn().mockResolvedValue({ error: null }),
+        getPublicUrl: jest.fn().mockReturnValue({
+          data: { publicUrl: 'https://example.com/test.webp' },
+        }),
+      };
+      mockSupabaseStorage.from.mockReturnValue(mockStorageFrom as any);
+
+      uploadRepository.create.mockReturnValue({
+        fileUrl: 'https://example.com/test.webp',
+      } as any);
+      uploadRepository.save.mockResolvedValue({ id: 'upload-1' } as any);
+
+      qrcodeService.updateLastUploadAt.mockRejectedValue(new Error('DB error'));
+
+      const result = await service.uploadImage('token-123', mockFile);
+
+      expect(result.id).toBe('upload-1');
     });
   });
 });

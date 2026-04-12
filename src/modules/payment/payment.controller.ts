@@ -36,7 +36,11 @@ export class PaymentController {
     @Body() dto: CreateCheckoutDto,
     @CurrentUser() user: User,
   ) {
-    return this.paymentService.createCheckoutSession(dto.qrCodeId, user);
+    return this.paymentService.createCheckoutSession(
+      dto.qrCodeId,
+      user,
+      dto.plan,
+    );
   }
 
   @Post('webhook')
@@ -48,6 +52,32 @@ export class PaymentController {
   ) {
     await this.paymentService.handleWebhook(req.rawBody, signature);
     return { received: true };
+  }
+
+  @Post('refund/:paymentId')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Solicitar reembolso de um pagamento' })
+  @ApiResponse({ status: 201, description: 'Reembolso processado com sucesso' })
+  @ApiResponse({
+    status: 400,
+    description: 'Pagamento não elegível para reembolso',
+  })
+  async requestRefund(
+    @Param('paymentId') paymentId: string,
+    @CurrentUser() user: User,
+    @Body('reason') reason?: string,
+  ) {
+    return this.paymentService.requestRefund(paymentId, user, reason);
+  }
+
+  @Get('history')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Obter histórico de pagamentos do usuário' })
+  @ApiResponse({ status: 200, description: 'Histórico de pagamentos' })
+  async getPaymentHistory(@Req() req: any) {
+    return this.paymentService.getPaymentHistory(req.user);
   }
 
   @Get('status/:qrCodeId')
