@@ -16,6 +16,7 @@ import { PaymentModule } from './modules/payment/payment.module';
 import { CommonModule } from './common/common.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { CsrfMiddleware } from './common/middleware/csrf.middleware';
+import { SeedModule } from './common/seed/seed.module';
 config();
 
 @Module({
@@ -57,6 +58,7 @@ config();
       }),
     }),
     CommonModule,
+    SeedModule,
     AuthModule,
     UserModule,
     HealthCheckModule,

@@ -78,6 +78,7 @@ export class QrcodeService {
         type: QrCodeType.FREE,
         plan: QrCodePlan.FREE,
         expirationDate: expirationDate,
+        uploadEnabled: true,
       });
     } catch (error) {
       throw new BadRequestException('error creating automatic QR code', {
