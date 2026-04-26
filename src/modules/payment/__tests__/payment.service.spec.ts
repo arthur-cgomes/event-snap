@@ -1650,4 +1650,23 @@ describe('PaymentService', () => {
       );
     });
   });
+
+  describe('stripe getter - missing key', () => {
+    it('Should throw when STRIPE_SECRET_KEY is not configured', async () => {
+      const ownedQrCode = {
+        id: 'qr-id',
+        type: QrCodeType.FREE,
+        user: { id: 'user-id' },
+      } as any;
+      const owner = { id: 'user-id' } as any;
+
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue(ownedQrCode);
+      paymentRepository.findOne = jest.fn().mockResolvedValue(null);
+      configService.get = jest.fn().mockReturnValue(undefined);
+
+      await expect(
+        service.createCheckoutSession('qr-id', owner),
+      ).rejects.toThrow('STRIPE_SECRET_KEY não configurada');
+    });
+  });
 });

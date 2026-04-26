@@ -80,6 +80,18 @@ describe('AppLoggerService', () => {
 
       consoleSpy.mockRestore();
     });
+
+    it('Should extract message from Error instance', () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      service.error(new Error('real error message'), undefined, 'TestContext');
+
+      expect(consoleSpy).toHaveBeenCalled();
+      const callArg = consoleSpy.mock.calls[0][0];
+      expect(callArg).toContain('real error message');
+
+      consoleSpy.mockRestore();
+    });
   });
 
   describe('warn', () => {

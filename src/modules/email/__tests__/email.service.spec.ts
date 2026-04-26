@@ -52,6 +52,16 @@ describe('EmailService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('resend getter - missing key', () => {
+    it('Should throw InternalServerErrorException when RESEND_API_KEY is not configured', async () => {
+      configService.get = jest.fn().mockReturnValue(undefined);
+
+      await expect(
+        service.sendEmail('to@example.com', 'Subject', 'Text'),
+      ).rejects.toThrow('RESEND_API_KEY not configured');
+    });
+  });
+
   describe('sendEmail', () => {
     it('Should send email via Resend successfully', async () => {
       mockResendSend.mockResolvedValueOnce({

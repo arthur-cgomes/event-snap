@@ -9,11 +9,16 @@ import { Resend } from 'resend';
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private resend: Resend;
+  private _resend: Resend | undefined;
 
-  constructor(private readonly configService: ConfigService) {
-    const apiKey = this.configService.get<string>('RESEND_API_KEY');
-    this.resend = new Resend(apiKey);
+  constructor(private readonly configService: ConfigService) {}
+
+  private get resend(): Resend {
+    const key = this.configService.get<string>('RESEND_API_KEY');
+    if (!key)
+      throw new InternalServerErrorException('RESEND_API_KEY not configured');
+    if (!this._resend) this._resend = new Resend(key);
+    return this._resend;
   }
 
   async sendEmail(to: string, subject: string, text: string, html?: string) {

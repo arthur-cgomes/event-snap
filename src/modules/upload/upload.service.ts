@@ -21,6 +21,7 @@ import { APP_CONSTANTS } from '../../common/constants';
 export class UploadService {
   private readonly CACHE_PREFIX = 'uploads';
   private readonly CACHE_TTL = 300;
+  private readonly bucket = process.env.SUPABASE_BUCKET || 'FotoUai-Storage';
 
   constructor(
     @InjectRepository(Upload)
@@ -117,7 +118,7 @@ export class UploadService {
     const objectKey = `${qrToken}/${Date.now()}-${sanitized}${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
-      .from('fotouai')
+      .from(this.bucket)
       .upload(objectKey, optimizedBuffer, {
         contentType: mimeType,
         upsert: true,
@@ -128,7 +129,7 @@ export class UploadService {
     }
 
     const { data: publicUrlData } = supabase.storage
-      .from('fotouai')
+      .from(this.bucket)
       .getPublicUrl(objectKey);
 
     const upload = this.uploadRepository.create({
@@ -204,7 +205,7 @@ export class UploadService {
   }
 
   private extractPathFromUrl(url: string): string {
-    const bucketName = process.env.SUPABASE_BUCKET || 'fotouai';
+    const bucketName = this.bucket;
     const idx = url.indexOf(`/storage/v1/object/public/${bucketName}/`);
     if (idx !== -1) {
       return url.substring(
@@ -216,12 +217,12 @@ export class UploadService {
 
   private async getSignedUrl(filePath: string): Promise<string> {
     const { data, error } = await supabase.storage
-      .from(process.env.SUPABASE_BUCKET || 'fotouai')
+      .from(this.bucket)
       .createSignedUrl(filePath, 3600);
 
     if (error || !data?.signedUrl) {
       const { data: publicData } = supabase.storage
-        .from(process.env.SUPABASE_BUCKET || 'fotouai')
+        .from(this.bucket)
         .getPublicUrl(filePath);
       return publicData.publicUrl;
     }

@@ -13,7 +13,7 @@ import { UserService } from '../user/user.service';
 import { AuthPayload } from './interfaces/auth.interface';
 import { JwtPayload, JwtResponse } from './interfaces/jwt-payload.interface';
 import { APP_CONSTANTS } from '../../common/constants';
-import { getFirebaseAuth } from '../../common/config/firebase.config';
+import { supabase } from '../../common/config/supabase.config';
 
 @Injectable()
 export class AuthService {
@@ -190,48 +190,51 @@ export class AuthService {
     return result !== null;
   }
 
-  async socialLogin(firebaseToken: string): Promise<JwtResponse> {
-    try {
-      const decodedToken = await getFirebaseAuth().verifyIdToken(firebaseToken);
+  async socialLogin(supabaseToken: string): Promise<JwtResponse> {
+    const {
+      data: { user: supabaseUser },
+      error,
+    } = await supabase.auth.getUser(supabaseToken);
 
-      const firebaseUid = decodedToken.uid;
-      const email = decodedToken.email;
-      const name = decodedToken.name || email?.split('@')[0] || 'Usuário';
-      const provider = decodedToken.firebase?.sign_in_provider || 'unknown';
+    if (error || !supabaseUser) {
+      throw new UnauthorizedException('invalid supabase token');
+    }
 
-      let user = await this.userService.findByFirebaseUid(firebaseUid);
+    const supabaseUid = supabaseUser.id;
+    const email = supabaseUser.email;
+    const name =
+      supabaseUser.user_metadata?.full_name ||
+      supabaseUser.user_metadata?.name ||
+      email?.split('@')[0] ||
+      'Usuário';
+    const provider = supabaseUser.app_metadata?.provider || 'unknown';
 
+    let user = await this.userService.findBySupabaseUid(supabaseUid);
+
+    if (user) {
+      return this.createJwtPayload(user);
+    }
+
+    if (email) {
+      user = await this.userService.findByEmail(email);
       if (user) {
+        await this.userService.linkSupabaseUid(user.id, supabaseUid, provider);
         return this.createJwtPayload(user);
       }
-
-      if (email) {
-        user = await this.userService.findByEmail(email);
-        if (user) {
-          await this.userService.linkFirebaseUid(
-            user.id,
-            firebaseUid,
-            provider,
-          );
-          return this.createJwtPayload(user);
-        }
-      }
-
-      const randomPassword = `${randomBytes(8).toString('hex')}Aa@${randomBytes(4).toString('hex')}`;
-
-      user = await this.userService.createUser({
-        email: email || `${firebaseUid}@social.fotouai.com.br`,
-        name,
-        password: randomPassword,
-        phone: '0000000000',
-        dateOfBirth: '01/01/2000',
-      });
-
-      await this.userService.linkFirebaseUid(user.id, firebaseUid, provider);
-
-      return this.createJwtPayload(user);
-    } catch {
-      throw new UnauthorizedException('invalid firebase token');
     }
+
+    const randomPassword = `${randomBytes(8).toString('hex')}Aa@${randomBytes(4).toString('hex')}`;
+
+    user = await this.userService.createUser({
+      email: email || `${supabaseUid}@social.fotouai.com.br`,
+      name,
+      password: randomPassword,
+      phone: '0000000000',
+      dateOfBirth: '01/01/2000',
+    });
+
+    await this.userService.linkSupabaseUid(user.id, supabaseUid, provider);
+
+    return this.createJwtPayload(user);
   }
 }

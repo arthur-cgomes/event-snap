@@ -357,39 +357,39 @@ describe('UserService', () => {
     });
   });
 
-  describe('findByFirebaseUid', () => {
-    it('Should find user by firebase uid', async () => {
-      const firebaseUid = 'firebase-uid-123';
+  describe('findBySupabaseUid', () => {
+    it('Should find user by supabase uid', async () => {
+      const supabaseUid = 'supabase-uid-123';
       repositoryMock.findOne = jest.fn().mockResolvedValue(mockUser);
 
-      const result = await service.findByFirebaseUid(firebaseUid);
+      const result = await service.findBySupabaseUid(supabaseUid);
 
       expect(result).toStrictEqual(mockUser);
       expect(repositoryMock.findOne).toHaveBeenCalledWith({
-        where: { firebaseUid },
+        where: { supabaseUid },
       });
     });
 
     it('Should return null when user not found', async () => {
       repositoryMock.findOne = jest.fn().mockResolvedValue(null);
 
-      const result = await service.findByFirebaseUid('nonexistent-uid');
+      const result = await service.findBySupabaseUid('nonexistent-uid');
 
       expect(result).toBeNull();
     });
   });
 
-  describe('linkFirebaseUid', () => {
-    it('Should link firebase uid to user', async () => {
-      const firebaseUid = 'firebase-uid-123';
-      const authProvider = 'google.com';
+  describe('linkSupabaseUid', () => {
+    it('Should link supabase uid to user', async () => {
+      const supabaseUid = 'supabase-uid-123';
+      const authProvider = 'google';
 
       repositoryMock.update = jest.fn().mockResolvedValue(undefined);
 
-      await service.linkFirebaseUid(mockUser.id, firebaseUid, authProvider);
+      await service.linkSupabaseUid(mockUser.id, supabaseUid, authProvider);
 
       expect(repositoryMock.update).toHaveBeenCalledWith(mockUser.id, {
-        firebaseUid,
+        supabaseUid,
         authProvider,
       });
     });

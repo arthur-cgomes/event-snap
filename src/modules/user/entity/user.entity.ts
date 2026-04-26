@@ -96,16 +96,16 @@ export class User extends BaseCollection {
 
   @ApiProperty({
     type: String,
-    description: 'UID do Firebase (login social)',
+    description: 'UID do Supabase (login social)',
   })
-  @Index('IDX_user_firebaseUid')
+  @Index('IDX_user_supabaseUid')
   @Column({
-    name: 'firebase_uid',
+    name: 'supabase_uid',
     type: 'varchar',
     nullable: true,
     default: null,
   })
-  firebaseUid?: string;
+  supabaseUid?: string;
 
   @ApiProperty({
     type: String,

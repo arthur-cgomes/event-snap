@@ -9,12 +9,12 @@ import { AuthService } from '../auth.service';
 import { AuthPayload } from '../interfaces/auth.interface';
 import { mockJwtPayload, mockUser } from './mocks/auth.mock';
 
-jest.mock('../../../common/config/firebase.config', () => ({
-  getFirebaseAuth: jest.fn(),
+jest.mock('../../../common/config/supabase.config', () => ({
+  supabase: { auth: { getUser: jest.fn() } },
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { getFirebaseAuth } = require('../../../common/config/firebase.config');
+const { supabase } = require('../../../common/config/supabase.config');
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -39,8 +39,8 @@ describe('AuthService', () => {
           useValue: {
             checkUserToLogin: jest.fn(),
             findByEmail: jest.fn(),
-            findByFirebaseUid: jest.fn(),
-            linkFirebaseUid: jest.fn(),
+            findBySupabaseUid: jest.fn(),
+            linkSupabaseUid: jest.fn(),
             createUser: jest.fn(),
             getUserById: jest.fn(),
             resetPasswordByEmail: jest.fn(),
@@ -363,24 +363,25 @@ describe('AuthService', () => {
   });
 
   describe('socialLogin', () => {
-    it('Should return user JWT if user already exists by firebase uid', async () => {
-      const firebaseToken = 'firebase_token';
-      const mockFirebaseUser = {
-        uid: 'firebase-uid-123',
+    it('Should return user JWT if user already exists by supabase uid', async () => {
+      const supabaseToken = 'supabase_token';
+      const mockSupabaseUser = {
+        id: 'supabase-uid-123',
         email: 'test@example.com',
-        name: 'Test User',
-        firebase: { sign_in_provider: 'google.com' },
+        user_metadata: { full_name: 'Test User' },
+        app_metadata: { provider: 'google' },
       };
 
-      getFirebaseAuth.mockReturnValue({
-        verifyIdToken: jest.fn().mockResolvedValue(mockFirebaseUser),
+      supabase.auth.getUser.mockResolvedValue({
+        data: { user: mockSupabaseUser },
+        error: null,
       });
 
-      userService.findByFirebaseUid.mockResolvedValue(mockUser);
+      userService.findBySupabaseUid.mockResolvedValue(mockUser);
       jwtService.sign.mockReturnValue('jwt_token');
       process.env.EXPIRE_IN = '7200';
 
-      const result = await service.socialLogin(firebaseToken);
+      const result = await service.socialLogin(supabaseToken);
 
       expect(result).toEqual({
         expiresIn: 7200,
@@ -392,25 +393,26 @@ describe('AuthService', () => {
     });
 
     it('Should link and return JWT if user exists by email', async () => {
-      const firebaseToken = 'firebase_token';
-      const mockFirebaseUser = {
-        uid: 'firebase-uid-123',
+      const supabaseToken = 'supabase_token';
+      const mockSupabaseUser = {
+        id: 'supabase-uid-123',
         email: 'test@example.com',
-        name: 'Test User',
-        firebase: { sign_in_provider: 'google.com' },
+        user_metadata: { full_name: 'Test User' },
+        app_metadata: { provider: 'google' },
       };
 
-      getFirebaseAuth.mockReturnValue({
-        verifyIdToken: jest.fn().mockResolvedValue(mockFirebaseUser),
+      supabase.auth.getUser.mockResolvedValue({
+        data: { user: mockSupabaseUser },
+        error: null,
       });
 
-      userService.findByFirebaseUid.mockResolvedValue(null);
+      userService.findBySupabaseUid.mockResolvedValue(null);
       userService.findByEmail.mockResolvedValue(mockUser);
-      userService.linkFirebaseUid.mockResolvedValue(undefined);
+      userService.linkSupabaseUid.mockResolvedValue(undefined);
       jwtService.sign.mockReturnValue('jwt_token');
       process.env.EXPIRE_IN = '7200';
 
-      const result = await service.socialLogin(firebaseToken);
+      const result = await service.socialLogin(supabaseToken);
 
       expect(result).toEqual({
         expiresIn: 7200,
@@ -419,151 +421,152 @@ describe('AuthService', () => {
         name: mockUser.name,
         userType: mockUser.userType,
       });
-      expect(userService.linkFirebaseUid).toHaveBeenCalledWith(
+      expect(userService.linkSupabaseUid).toHaveBeenCalledWith(
         mockUser.id,
-        mockFirebaseUser.uid,
-        mockFirebaseUser.firebase.sign_in_provider,
+        mockSupabaseUser.id,
+        mockSupabaseUser.app_metadata.provider,
       );
     });
 
     it('Should create new user if not found', async () => {
-      const firebaseToken = 'firebase_token';
-      const mockFirebaseUser = {
-        uid: 'firebase-uid-123',
+      const supabaseToken = 'supabase_token';
+      const mockSupabaseUser = {
+        id: 'supabase-uid-123',
         email: 'newuser@example.com',
-        name: 'New User',
-        firebase: { sign_in_provider: 'google.com' },
+        user_metadata: { full_name: 'New User' },
+        app_metadata: { provider: 'google' },
       };
 
-      getFirebaseAuth.mockReturnValue({
-        verifyIdToken: jest.fn().mockResolvedValue(mockFirebaseUser),
+      supabase.auth.getUser.mockResolvedValue({
+        data: { user: mockSupabaseUser },
+        error: null,
       });
 
-      userService.findByFirebaseUid.mockResolvedValue(null);
+      userService.findBySupabaseUid.mockResolvedValue(null);
       userService.findByEmail.mockResolvedValue(null);
-      const newUser = { ...mockUser, email: mockFirebaseUser.email } as any;
+      const newUser = { ...mockUser, email: mockSupabaseUser.email } as any;
       userService.createUser.mockResolvedValue(newUser);
-      userService.linkFirebaseUid.mockResolvedValue(undefined);
+      userService.linkSupabaseUid.mockResolvedValue(undefined);
       jwtService.sign.mockReturnValue('jwt_token');
       process.env.EXPIRE_IN = '7200';
 
-      const result = await service.socialLogin(firebaseToken);
+      const result = await service.socialLogin(supabaseToken);
 
       expect(result).toBeDefined();
       expect(userService.createUser).toHaveBeenCalledWith({
-        email: mockFirebaseUser.email,
-        name: mockFirebaseUser.name,
+        email: mockSupabaseUser.email,
+        name: mockSupabaseUser.user_metadata.full_name,
         password: expect.any(String),
         phone: '0000000000',
         dateOfBirth: '01/01/2000',
       });
     });
 
-    it('Should throw UnauthorizedException if firebase token is invalid', async () => {
-      const firebaseToken = 'invalid_token';
-
-      getFirebaseAuth.mockReturnValue({
-        verifyIdToken: jest.fn().mockRejectedValue(new Error('Invalid token')),
+    it('Should throw UnauthorizedException if supabase token is invalid', async () => {
+      supabase.auth.getUser.mockResolvedValue({
+        data: { user: null },
+        error: { message: 'Invalid token' },
       });
 
-      await expect(service.socialLogin(firebaseToken)).rejects.toThrow(
+      await expect(service.socialLogin('invalid_token')).rejects.toThrow(
         UnauthorizedException,
       );
     });
 
-    it('Should use email-based uid if name not provided', async () => {
-      const firebaseToken = 'firebase_token';
-      const mockFirebaseUser = {
-        uid: 'firebase-uid-456',
+    it('Should use email prefix as name if full_name not provided', async () => {
+      const supabaseToken = 'supabase_token';
+      const mockSupabaseUser = {
+        id: 'supabase-uid-456',
         email: 'user@example.com',
-        name: undefined,
-        firebase: { sign_in_provider: 'facebook.com' },
+        user_metadata: {},
+        app_metadata: { provider: 'facebook' },
       };
 
-      getFirebaseAuth.mockReturnValue({
-        verifyIdToken: jest.fn().mockResolvedValue(mockFirebaseUser),
+      supabase.auth.getUser.mockResolvedValue({
+        data: { user: mockSupabaseUser },
+        error: null,
       });
 
-      userService.findByFirebaseUid.mockResolvedValue(null);
+      userService.findBySupabaseUid.mockResolvedValue(null);
       userService.findByEmail.mockResolvedValue(null);
-      const newUser = { ...mockUser, email: mockFirebaseUser.email } as any;
+      const newUser = { ...mockUser, email: mockSupabaseUser.email } as any;
       userService.createUser.mockResolvedValue(newUser);
-      userService.linkFirebaseUid.mockResolvedValue(undefined);
+      userService.linkSupabaseUid.mockResolvedValue(undefined);
       jwtService.sign.mockReturnValue('jwt_token');
       process.env.EXPIRE_IN = '7200';
 
-      const result = await service.socialLogin(firebaseToken);
+      const result = await service.socialLogin(supabaseToken);
 
       expect(result).toBeDefined();
       expect(userService.createUser).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'user',
-        }),
+        expect.objectContaining({ name: 'user' }),
       );
     });
 
     it('Should use default name if both name and email are undefined', async () => {
-      const firebaseToken = 'firebase_token';
-      const mockFirebaseUser = {
-        uid: 'firebase-uid-789',
+      const supabaseToken = 'supabase_token';
+      const mockSupabaseUser = {
+        id: 'supabase-uid-789',
         email: undefined,
-        name: undefined,
-        firebase: { sign_in_provider: 'unknown' },
+        user_metadata: {},
+        app_metadata: { provider: 'unknown' },
       };
 
-      getFirebaseAuth.mockReturnValue({
-        verifyIdToken: jest.fn().mockResolvedValue(mockFirebaseUser),
+      supabase.auth.getUser.mockResolvedValue({
+        data: { user: mockSupabaseUser },
+        error: null,
       });
 
-      userService.findByFirebaseUid.mockResolvedValue(null);
+      userService.findBySupabaseUid.mockResolvedValue(null);
       userService.findByEmail.mockResolvedValue(null);
       const newUser = {
         ...mockUser,
-        email: 'firebase-uid-789@social.fotouai.com.br',
+        email: 'supabase-uid-789@social.fotouai.com.br',
       } as any;
       userService.createUser.mockResolvedValue(newUser);
-      userService.linkFirebaseUid.mockResolvedValue(undefined);
+      userService.linkSupabaseUid.mockResolvedValue(undefined);
       jwtService.sign.mockReturnValue('jwt_token');
       process.env.EXPIRE_IN = '7200';
 
-      const result = await service.socialLogin(firebaseToken);
+      const result = await service.socialLogin(supabaseToken);
 
       expect(result).toBeDefined();
       expect(userService.createUser).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Usuário',
-          email: 'firebase-uid-789@social.fotouai.com.br',
+          email: 'supabase-uid-789@social.fotouai.com.br',
         }),
       );
     });
 
-    it('Should use unknown as provider if firebase sign_in_provider not provided', async () => {
-      const firebaseToken = 'firebase_token';
-      const mockFirebaseUser = {
-        uid: 'firebase-uid-999',
+    it('Should use unknown as provider if app_metadata provider not provided', async () => {
+      const supabaseToken = 'supabase_token';
+      const mockSupabaseUser = {
+        id: 'supabase-uid-999',
         email: 'test@example.com',
-        name: 'Test User',
-        firebase: {},
+        user_metadata: { full_name: 'Test User' },
+        app_metadata: {},
       };
 
-      getFirebaseAuth.mockReturnValue({
-        verifyIdToken: jest.fn().mockResolvedValue(mockFirebaseUser),
+      supabase.auth.getUser.mockResolvedValue({
+        data: { user: mockSupabaseUser },
+        error: null,
       });
 
-      userService.findByFirebaseUid.mockResolvedValue(null);
+      userService.findBySupabaseUid.mockResolvedValue(null);
       userService.findByEmail.mockResolvedValue(null);
-      const newUser = { ...mockUser, email: mockFirebaseUser.email } as any;
+      const newUser = { ...mockUser, email: mockSupabaseUser.email } as any;
       userService.createUser.mockResolvedValue(newUser);
-      userService.linkFirebaseUid.mockResolvedValue(undefined);
+      userService.linkSupabaseUid.mockResolvedValue(undefined);
       jwtService.sign.mockReturnValue('jwt_token');
       process.env.EXPIRE_IN = '7200';
 
-      const result = await service.socialLogin(firebaseToken);
+      const result = await service.socialLogin(supabaseToken);
 
       expect(result).toBeDefined();
-      expect(userService.linkFirebaseUid).toHaveBeenCalledWith(
+      expect(userService.linkSupabaseUid).toHaveBeenCalledWith(
         expect.any(String),
-        'firebase-uid-999',
+        'supabase-uid-999',
         'unknown',
       );
     });

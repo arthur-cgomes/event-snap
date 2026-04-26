@@ -49,10 +49,10 @@ export class AuthController {
   @Post('social-login')
   @Throttle({ default: { ttl: 60000, limit: 10 } })
   @ApiOperation({
-    summary: 'Login social via Firebase (Google/Apple/Facebook)',
+    summary: 'Login social via Supabase (Google/Apple/Facebook)',
   })
   async socialLogin(@Body() dto: SocialLoginDto) {
-    return await this.authService.socialLogin(dto.firebaseToken);
+    return await this.authService.socialLogin(dto.supabaseToken);
   }
 
   @UseGuards(AuthGuard())

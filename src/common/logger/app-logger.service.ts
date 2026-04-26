@@ -17,7 +17,12 @@ export class AppLoggerService implements NestLoggerService {
       timestamp,
       level,
       context: context || 'Application',
-      message: typeof message === 'object' ? JSON.stringify(message) : message,
+      message:
+        message instanceof Error
+          ? message.message
+          : typeof message === 'object'
+            ? JSON.stringify(message)
+            : message,
     };
     if (trace) log.trace = trace;
     return JSON.stringify(log);

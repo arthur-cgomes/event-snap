@@ -588,6 +588,29 @@ describe('UploadService', () => {
       expect(result[0]).toBe('https://signed.url');
     });
 
+    it('Should extract path correctly when URL matches bucket pattern', async () => {
+      const mockStorageFrom = {
+        createSignedUrl: jest.fn().mockResolvedValue({
+          data: { signedUrl: 'https://signed.url/extracted' },
+          error: null,
+        }),
+        getPublicUrl: jest.fn(),
+      };
+      mockSupabaseStorage.from.mockReturnValue(mockStorageFrom as any);
+
+      const bucket = process.env.SUPABASE_BUCKET || 'FotoUai-Storage';
+      const urls = [
+        `https://example.com/storage/v1/object/public/${bucket}/path/to/file.jpg`,
+      ];
+      const result = await service.getSignedUrls(urls);
+
+      expect(result[0]).toBe('https://signed.url/extracted');
+      expect(mockStorageFrom.createSignedUrl).toHaveBeenCalledWith(
+        'path/to/file.jpg',
+        3600,
+      );
+    });
+
     it('Should fallback to original URL on error', async () => {
       const mockStorageFrom = {
         createSignedUrl: jest.fn().mockRejectedValue(new Error('Error')),

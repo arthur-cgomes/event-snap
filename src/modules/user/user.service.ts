@@ -61,16 +61,16 @@ export class UserService {
     return await this.userRepository.findOne({ where: { email } });
   }
 
-  async findByFirebaseUid(firebaseUid: string): Promise<User | null> {
-    return await this.userRepository.findOne({ where: { firebaseUid } });
+  async findBySupabaseUid(supabaseUid: string): Promise<User | null> {
+    return await this.userRepository.findOne({ where: { supabaseUid } });
   }
 
-  async linkFirebaseUid(
+  async linkSupabaseUid(
     userId: string,
-    firebaseUid: string,
+    supabaseUid: string,
     authProvider: string,
   ): Promise<void> {
-    await this.userRepository.update(userId, { firebaseUid, authProvider });
+    await this.userRepository.update(userId, { supabaseUid, authProvider });
   }
 
   async checkEmailAvailable(email: string): Promise<void> {
