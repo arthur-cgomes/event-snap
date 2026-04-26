@@ -130,6 +130,19 @@ export class QrCode extends BaseCollection {
   recommendations: string;
 
   @ApiProperty({
+    type: String,
+    description: 'Prefixo da pasta no storage (slug do nome + sufixo do token)',
+    nullable: true,
+  })
+  @Column({
+    name: 'storage_prefix',
+    type: 'varchar',
+    nullable: true,
+    default: null,
+  })
+  storagePrefix: string;
+
+  @ApiProperty({
     type: Boolean,
     description: 'Se o upload está habilitado para este QR code',
   })

@@ -37,6 +37,10 @@ export class UploadService {
   ): Promise<Upload> {
     const qrCode = await this.qrCodeService.getQrCodeByToken(qrToken);
 
+    if (!qrCode.uploadEnabled) {
+      throw new ForbiddenException('upload limit reached');
+    }
+
     const currentUploads = await this.countUploadsByQrCodeId(qrCode.id);
     const maxUploads = this.getMaxUploadsForPlan(qrCode.plan);
 
@@ -115,7 +119,8 @@ export class UploadService {
       path.extname(file.originalname),
     );
     const sanitized = base.replace(/[^\w.\-]/g, '_');
-    const objectKey = `${qrToken}/${Date.now()}-${sanitized}${fileExt}`;
+    const folderPrefix = qrCode.storagePrefix || qrToken;
+    const objectKey = `${folderPrefix}/${Date.now()}-${sanitized}${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from(this.bucket)

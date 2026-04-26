@@ -119,12 +119,25 @@ describe('UploadService', () => {
       id: 'qr-1',
       type: QrCodeType.PAID,
       token: 'token-123',
+      uploadEnabled: true,
+      storagePrefix: 'meu-evento-a1b2c3d4',
     } as any;
     const mockFile = {
       buffer: Buffer.from([0xff, 0xd8, 0xff]),
       mimetype: 'image/jpeg',
       originalname: 'test.jpg',
     } as any;
+
+    it('Should reject if uploadEnabled is false', async () => {
+      qrcodeService.getQrCodeByToken.mockResolvedValue({
+        ...mockQrCode,
+        uploadEnabled: false,
+      });
+
+      await expect(service.uploadImage('token-123', mockFile)).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
 
     it('Should reject file if not provided', async () => {
       qrcodeService.getQrCodeByToken.mockResolvedValue(mockQrCode);
@@ -340,6 +353,31 @@ describe('UploadService', () => {
 
       expect(result.id).toBe('upload-noname');
       expect(mockSupabaseStorage.from).toHaveBeenCalled();
+    });
+
+    it('Should fall back to token as folder prefix when storagePrefix is absent', async () => {
+      const qrCodeWithoutPrefix = { ...mockQrCode, storagePrefix: undefined };
+      qrcodeService.getQrCodeByToken.mockResolvedValue(qrCodeWithoutPrefix);
+      (service as any).countUploadsByQrCodeId = jest.fn().mockResolvedValue(0);
+      mockSharpInstance.toBuffer.mockResolvedValue(Buffer.from('optimized'));
+
+      const mockStorageFrom = {
+        upload: jest.fn().mockResolvedValue({ error: null }),
+        getPublicUrl: jest.fn().mockReturnValue({
+          data: { publicUrl: 'https://example.com/token-123/file.webp' },
+        }),
+      };
+      mockSupabaseStorage.from.mockReturnValue(mockStorageFrom as any);
+      uploadRepository.create.mockReturnValue({
+        fileUrl: 'https://example.com/token-123/file.webp',
+      } as any);
+      uploadRepository.save.mockResolvedValue({ id: 'upload-fallback' } as any);
+
+      const result = await service.uploadImage('token-123', mockFile);
+
+      expect(result.id).toBe('upload-fallback');
+      const uploadCall = mockStorageFrom.upload.mock.calls[0][0] as string;
+      expect(uploadCall.startsWith('token-123/')).toBe(true);
     });
   });
 
@@ -632,6 +670,7 @@ describe('UploadService', () => {
       token: 'token-123',
       eventName: 'Test Event',
       plan: QrCodePlan.PARTY,
+      uploadEnabled: true,
     } as any;
     const mockFile = {
       buffer: Buffer.from([0xff, 0xd8, 0xff]),
@@ -1046,6 +1085,7 @@ describe('UploadService', () => {
       type: QrCodeType.PAID,
       token: 'token-123',
       eventName: null,
+      uploadEnabled: true,
     } as any;
     const mockFile = {
       buffer: Buffer.from([0xff, 0xd8, 0xff]),

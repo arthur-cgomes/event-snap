@@ -40,6 +40,12 @@ config();
         database: configService.get('TYPEORM_DATABASE'),
         autoLoadEntities: true,
         synchronize: false,
+        migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
+        migrationsRun: true,
+        ssl:
+          configService.get('TYPEORM_SSL') === 'false'
+            ? false
+            : { rejectUnauthorized: false },
         logging: configService.get('NODE_ENV') !== 'production',
         extra: {
           max: 20,

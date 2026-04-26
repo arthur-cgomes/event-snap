@@ -19,6 +19,16 @@ import { QrCode } from './entity/qrcode.entity';
 import { CreateQrcodeDto } from './dto/create-qrcode.dto';
 import * as QRCode from 'qrcode';
 import { v4 as uuidv4 } from 'uuid';
+
+function slugify(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 40);
+}
 import { fromZonedTime } from 'date-fns-tz';
 import { isValid } from 'date-fns';
 import { GetAllResponseDto } from '../../common/dto/get-all.dto';
@@ -99,6 +109,8 @@ export class QrcodeService {
 
     await this.userService.getUserById(userId);
     const token = uuidv4();
+    const slug = slugify(eventName || 'evento');
+    const storagePrefix = `${slug}-${token.substring(0, 8)}`;
     const expirationUtc =
       expirationDate !== undefined
         ? this.resolveExpirationDate(expirationDate)
@@ -106,6 +118,7 @@ export class QrcodeService {
 
     const qrCode = this.qrCodeRepository.create({
       token,
+      storagePrefix,
       eventName,
       descriptionEvent,
       user: { id: userId } as any,
@@ -354,6 +367,10 @@ export class QrcodeService {
     });
 
     if (!qrcode) {
+      throw new NotFoundException('qrcode not found');
+    }
+
+    if (qrcode.expirationDate && new Date() > new Date(qrcode.expirationDate)) {
       throw new NotFoundException('qrcode not found');
     }
 

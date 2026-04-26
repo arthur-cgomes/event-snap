@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class Migration1777222037318 implements MigrationInterface {
-  name = 'Migration1777222037318';
+export class Migration1777227592882 implements MigrationInterface {
+  name = 'Migration1777227592882';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -20,7 +20,7 @@ export class Migration1777222037318 implements MigrationInterface {
       `CREATE TYPE "public"."qrcode_plan_enum" AS ENUM('FREE', 'PARTY', 'CORPORATE')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "qrcode" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "active" boolean NOT NULL DEFAULT true, "deleted_at" TIMESTAMP, "token" character varying, "event_name" character varying, "description_event" character varying, "event_color" character varying, "expiration_date" TIMESTAMP, "type" "public"."qrcode_type_enum" NOT NULL DEFAULT 'FREE', "plan" "public"."qrcode_plan_enum" NOT NULL DEFAULT 'FREE', "eventLocation" character varying, "eventDateTime" TIMESTAMP, "dressCode" character varying, "eventTheme" character varying, "coverImageUrl" character varying, "recommendations" text, "uploadEnabled" boolean NOT NULL DEFAULT false, "galleryEnabled" boolean NOT NULL DEFAULT false, "viewCount" integer NOT NULL DEFAULT '0', "lastUploadAt" TIMESTAMP, "userId" uuid, CONSTRAINT "PK_9aaafe9e77dce17001051dab68a" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "qrcode" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "active" boolean NOT NULL DEFAULT true, "deleted_at" TIMESTAMP, "token" character varying, "event_name" character varying, "description_event" character varying, "event_color" character varying, "expiration_date" TIMESTAMP, "type" "public"."qrcode_type_enum" NOT NULL DEFAULT 'FREE', "plan" "public"."qrcode_plan_enum" NOT NULL DEFAULT 'FREE', "eventLocation" character varying, "eventDateTime" TIMESTAMP, "dressCode" character varying, "eventTheme" character varying, "coverImageUrl" character varying, "recommendations" text, "storage_prefix" character varying, "uploadEnabled" boolean NOT NULL DEFAULT false, "galleryEnabled" boolean NOT NULL DEFAULT false, "viewCount" integer NOT NULL DEFAULT '0', "lastUploadAt" TIMESTAMP, "userId" uuid, CONSTRAINT "PK_9aaafe9e77dce17001051dab68a" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE UNIQUE INDEX "IDX_qrcode_token" ON "qrcode" ("token") `,

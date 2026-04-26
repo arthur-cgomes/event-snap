@@ -172,6 +172,64 @@ describe('QrcodeService', () => {
       expect(qrCodeRepository.save).toHaveBeenCalled();
     });
 
+    it('Should generate storagePrefix as slug-suffix from eventName', async () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+
+      const createDto = {
+        userId: 'user-id',
+        eventName: 'Aniversário Arthur',
+        type: QrCodeType.FREE,
+        expirationDate: futureDate,
+      };
+
+      userService.getUserById.mockResolvedValue(mockUser);
+      let capturedCreate: any;
+      qrCodeRepository.create = jest.fn().mockImplementation((data) => {
+        capturedCreate = data;
+        return { ...mockQrCode, ...data };
+      });
+      qrCodeRepository.save = jest.fn().mockResolvedValue(mockQrCode);
+      cacheService.set.mockResolvedValue(undefined);
+      QRCode.toDataURL = jest
+        .fn()
+        .mockResolvedValue('data:image/png;base64,xxx');
+
+      await service.createQrCode(createDto);
+
+      expect(capturedCreate.storagePrefix).toMatch(
+        /^aniversario-arthur-[a-f0-9]{8}$/,
+      );
+    });
+
+    it('Should use "evento" slug when eventName is empty', async () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+
+      const createDto = {
+        userId: 'user-id',
+        eventName: undefined as any,
+        type: QrCodeType.FREE,
+        expirationDate: futureDate,
+      };
+
+      userService.getUserById.mockResolvedValue(mockUser);
+      let capturedCreate: any;
+      qrCodeRepository.create = jest.fn().mockImplementation((data) => {
+        capturedCreate = data;
+        return { ...mockQrCode, ...data };
+      });
+      qrCodeRepository.save = jest.fn().mockResolvedValue(mockQrCode);
+      cacheService.set.mockResolvedValue(undefined);
+      QRCode.toDataURL = jest
+        .fn()
+        .mockResolvedValue('data:image/png;base64,xxx');
+
+      await service.createQrCode(createDto);
+
+      expect(capturedCreate.storagePrefix).toMatch(/^evento-[a-f0-9]{8}$/);
+    });
+
     it('Should throw NotFoundException when user not found', async () => {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 7);
@@ -268,6 +326,18 @@ describe('QrcodeService', () => {
       qrCodeRepository.findOne = jest.fn().mockResolvedValue(null);
 
       await expect(service.getQrCodeByToken('invalid-token')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('Should throw NotFoundException when QR code is expired', async () => {
+      cacheService.get.mockResolvedValue(null);
+      qrCodeRepository.findOne = jest.fn().mockResolvedValue({
+        ...mockQrCode,
+        expirationDate: new Date(Date.now() - 1000),
+      });
+
+      await expect(service.getQrCodeByToken('token-123')).rejects.toThrow(
         NotFoundException,
       );
     });
