@@ -358,6 +358,8 @@ export class QrcodeService {
     const cacheKey = `${this.CACHE_PREFIX}:token:${token}`;
     const cached = await this.cacheService.get<QrCode>(cacheKey);
 
+    this.qrCodeRepository.increment({ token }, 'viewCount', 1).catch(() => {});
+
     if (cached) {
       return cached;
     }
@@ -377,8 +379,6 @@ export class QrcodeService {
 
     const ttl = this.calculateCacheTTL(qrcode.expirationDate);
     await this.cacheService.set(cacheKey, qrcode, ttl);
-
-    this.qrCodeRepository.increment({ token }, 'viewCount', 1).catch(() => {});
 
     return qrcode;
   }

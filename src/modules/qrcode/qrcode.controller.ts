@@ -27,6 +27,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { User } from '../user/entity/user.entity';
 import { UserType } from '../../common/enum/user-type.enum';
+import { PublicQrCodeResponseDto } from './dto/public-qrcode-response.dto';
 
 @ApiBearerAuth()
 @ApiTags('QRCode')
@@ -60,8 +61,28 @@ export class QrcodeController {
 
   @Get('/public/:token')
   @ApiOperation({ summary: 'Acessa QR code pelo token público' })
-  async getQrCodeByToken(@Param('token') token: string) {
-    return await this.qrcodeService.getQrCodeByToken(token);
+  async getQrCodeByToken(
+    @Param('token') token: string,
+  ): Promise<PublicQrCodeResponseDto> {
+    const qrcode = await this.qrcodeService.getQrCodeByToken(token);
+    return {
+      token: qrcode.token,
+      eventName: qrcode.eventName,
+      descriptionEvent: qrcode.descriptionEvent,
+      eventColor: qrcode.eventColor,
+      expirationDate: qrcode.expirationDate,
+      type: qrcode.type,
+      plan: qrcode.plan,
+      uploadEnabled: qrcode.uploadEnabled,
+      galleryEnabled: qrcode.galleryEnabled,
+      viewCount: qrcode.viewCount,
+      eventLocation: qrcode.eventLocation,
+      eventDateTime: qrcode.eventDateTime,
+      dressCode: qrcode.dressCode,
+      coverImageUrl: qrcode.coverImageUrl,
+      recommendations: qrcode.recommendations,
+      ownerName: qrcode.user?.name ?? null,
+    };
   }
 
   @UseGuards(AuthGuard())

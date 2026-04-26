@@ -1938,6 +1938,19 @@ describe('QrcodeService', () => {
       );
     });
 
+    it('Should increment viewCount even when served from cache', async () => {
+      cacheService.get = jest.fn().mockResolvedValue(mockQrCode);
+
+      await service.getQrCodeByToken('token-123');
+
+      expect(qrCodeRepository.increment).toHaveBeenCalledWith(
+        { token: 'token-123' },
+        'viewCount',
+        1,
+      );
+      expect(qrCodeRepository.findOne).not.toHaveBeenCalled();
+    });
+
     it('Should handle increment failure gracefully', async () => {
       cacheService.get = jest.fn().mockResolvedValue(null);
       qrCodeRepository.findOne = jest.fn().mockResolvedValue(mockQrCode);
