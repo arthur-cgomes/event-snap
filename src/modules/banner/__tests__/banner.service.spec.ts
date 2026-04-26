@@ -50,7 +50,7 @@ describe('BannerService', () => {
   });
 
   describe('create', () => {
-    it('Should create a banner', async () => {
+    it('Should create a banner with active defaulting to true', async () => {
       const createBannerData = {
         title: 'Test Banner',
         description: 'Test Description',
@@ -63,8 +63,47 @@ describe('BannerService', () => {
       const result = await service.create(createBannerData);
 
       expect(result).toEqual(mockBanner);
-      expect(bannerRepository.create).toHaveBeenCalledWith(createBannerData);
+      expect(bannerRepository.create).toHaveBeenCalledWith({
+        ...createBannerData,
+        active: true,
+      });
       expect(bannerRepository.save).toHaveBeenCalledWith(mockBanner);
+    });
+
+    it('Should respect explicit active=false', async () => {
+      const createBannerData = {
+        title: 'Inactive Banner',
+        active: false,
+      };
+
+      const inactiveBanner = { ...mockBanner, active: false };
+      bannerRepository.create = jest.fn().mockReturnValue(inactiveBanner);
+      bannerRepository.save = jest.fn().mockResolvedValue(inactiveBanner);
+
+      const result = await service.create(createBannerData as any);
+
+      expect(result.active).toBe(false);
+      expect(bannerRepository.create).toHaveBeenCalledWith({
+        ...createBannerData,
+        active: false,
+      });
+    });
+
+    it('Should respect explicit active=true', async () => {
+      const createBannerData = {
+        title: 'Active Banner',
+        active: true,
+      };
+
+      bannerRepository.create = jest.fn().mockReturnValue(mockBanner);
+      bannerRepository.save = jest.fn().mockResolvedValue(mockBanner);
+
+      await service.create(createBannerData as any);
+
+      expect(bannerRepository.create).toHaveBeenCalledWith({
+        ...createBannerData,
+        active: true,
+      });
     });
   });
 

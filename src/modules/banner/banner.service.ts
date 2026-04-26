@@ -8,6 +8,8 @@ import {
   Repository,
 } from 'typeorm';
 import { Banner } from './entity/banner.entity';
+import { CreateBannerDto } from './dto/create-banner.dto';
+import { UpdateBannerDto } from './dto/update-banner.dto';
 
 @Injectable()
 export class BannerService {
@@ -16,8 +18,11 @@ export class BannerService {
     private readonly bannerRepository: Repository<Banner>,
   ) {}
 
-  async create(data: Partial<Banner>): Promise<Banner> {
-    const banner = this.bannerRepository.create(data);
+  async create(data: CreateBannerDto): Promise<Banner> {
+    const banner = this.bannerRepository.create({
+      ...data,
+      active: data.active !== undefined ? data.active : true,
+    } as unknown as Partial<Banner>);
     return await this.bannerRepository.save(banner);
   }
 
@@ -49,9 +54,9 @@ export class BannerService {
     return banner;
   }
 
-  async update(id: string, data: Partial<Banner>): Promise<Banner> {
+  async update(id: string, data: UpdateBannerDto): Promise<Banner> {
     await this.findById(id);
-    await this.bannerRepository.update(id, data);
+    await this.bannerRepository.update(id, data as unknown as Partial<Banner>);
     return await this.findById(id);
   }
 

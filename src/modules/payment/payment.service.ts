@@ -21,7 +21,18 @@ import { EmailService } from '../email/email.service';
 @Injectable()
 export class PaymentService {
   private readonly logger = new Logger(PaymentService.name);
-  private readonly stripe: Stripe;
+  private _stripe: Stripe | undefined;
+
+  private get stripe(): Stripe {
+    const key = this.configService.get<string>('STRIPE_SECRET_KEY');
+    if (!key) {
+      throw new Error('STRIPE_SECRET_KEY não configurada');
+    }
+    if (!this._stripe) {
+      this._stripe = new Stripe(key, { apiVersion: '2025-02-24.acacia' });
+    }
+    return this._stripe;
+  }
 
   constructor(
     @InjectRepository(Payment)
@@ -31,12 +42,7 @@ export class PaymentService {
     private readonly configService: ConfigService,
     private readonly cacheService: CacheService,
     private readonly emailService: EmailService,
-  ) {
-    this.stripe = new Stripe(
-      this.configService.get<string>('STRIPE_SECRET_KEY'),
-      { apiVersion: '2025-02-24.acacia' },
-    );
-  }
+  ) {}
 
   async createCheckoutSession(
     qrCodeId: string,

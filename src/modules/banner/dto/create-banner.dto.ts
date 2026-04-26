@@ -1,12 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsNumber,
   IsDateString,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 export class CreateBannerDto {
   @ApiProperty({ description: 'Título do banner' })
@@ -51,15 +51,30 @@ export class CreateBannerDto {
   @IsNumber()
   displayOrder?: number;
 
-  @ApiProperty({ description: 'Data/hora de início', required: false })
+  @ApiProperty({
+    description: 'Status ativo do banner',
+    required: false,
+    default: true,
+  })
   @IsOptional()
-  @IsDateString()
-  @Type(() => Date)
-  startsAt?: Date;
+  @IsBoolean()
+  active?: boolean;
 
-  @ApiProperty({ description: 'Data/hora de término', required: false })
+  @ApiProperty({
+    description: 'Data/hora de início (ISO 8601)',
+    required: false,
+    example: '2026-04-19T00:00:00.000Z',
+  })
   @IsOptional()
   @IsDateString()
-  @Type(() => Date)
-  endsAt?: Date;
+  startsAt?: string;
+
+  @ApiProperty({
+    description: 'Data/hora de término (ISO 8601)',
+    required: false,
+    example: '2026-12-31T23:59:59.000Z',
+  })
+  @IsOptional()
+  @IsDateString()
+  endsAt?: string;
 }
