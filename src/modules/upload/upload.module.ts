@@ -6,7 +6,7 @@ import { Upload } from './entity/upload.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
 import { QrcodeModule } from '../qrcode/qrcode.module';
-import { EmailModule } from '../email/email.module';
+import { DispatcherEmailModule } from '../dispatcher-email/dispatcher-email.module';
 import { TurnstileService } from '../../common/services/turnstile.service';
 import { UploadRateLimitGuard } from '../../common/guards/upload-rate-limit.guard';
 
@@ -15,7 +15,7 @@ import { UploadRateLimitGuard } from '../../common/guards/upload-rate-limit.guar
     TypeOrmModule.forFeature([Upload]),
     PassportModule.register({ defaultStrategy: 'jwt', session: false }),
     QrcodeModule,
-    EmailModule,
+    DispatcherEmailModule,
     ConfigModule,
   ],
   providers: [UploadService, TurnstileService, UploadRateLimitGuard],

@@ -32,5 +32,5 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /opt/fotouai-back && git pull
+            cd /opt/repos-run/fotouai-back && git pull
             cd /opt/infra && docker compose up -d --build fotouai-back

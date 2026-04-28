@@ -6,7 +6,7 @@ import { UserModule } from '../user/user.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { EmailModule } from '../email/email.module';
+import { DispatcherEmailModule } from '../dispatcher-email/dispatcher-email.module';
 
 @Module({
   imports: [
@@ -26,7 +26,7 @@ import { EmailModule } from '../email/email.module';
       },
     }),
     UserModule,
-    EmailModule,
+    DispatcherEmailModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, RedisProvider],

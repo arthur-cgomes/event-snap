@@ -4,7 +4,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Redis } from 'ioredis';
 import { User } from '../../user/entity/user.entity';
 import { UserService } from '../../user/user.service';
-import { EmailService } from '../../email/email.service';
+import { DispatcherEmailService } from '../../dispatcher-email/dispatcher-email.service';
 import { AuthService } from '../auth.service';
 import { AuthPayload } from '../interfaces/auth.interface';
 import { mockJwtPayload, mockUser } from './mocks/auth.mock';
@@ -20,7 +20,7 @@ describe('AuthService', () => {
   let service: AuthService;
   let userService: jest.Mocked<UserService>;
   let jwtService: jest.Mocked<JwtService>;
-  let emailService: jest.Mocked<EmailService>;
+  let dispatcherEmailService: jest.Mocked<DispatcherEmailService>;
   let redisMock: jest.Mocked<Redis>;
 
   beforeEach(async () => {
@@ -55,9 +55,9 @@ describe('AuthService', () => {
           },
         },
         {
-          provide: EmailService,
+          provide: DispatcherEmailService,
           useValue: {
-            sendBrevo: jest.fn(),
+            sendEmail: jest.fn(),
           },
         },
         {
@@ -70,7 +70,9 @@ describe('AuthService', () => {
     service = module.get<AuthService>(AuthService);
     userService = module.get(UserService) as jest.Mocked<UserService>;
     jwtService = module.get(JwtService) as jest.Mocked<JwtService>;
-    emailService = module.get(EmailService) as jest.Mocked<EmailService>;
+    dispatcherEmailService = module.get(
+      DispatcherEmailService,
+    ) as jest.Mocked<DispatcherEmailService>;
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -176,7 +178,9 @@ describe('AuthService', () => {
       redisMock.ttl.mockResolvedValue(-2);
       redisMock.set.mockResolvedValue('OK');
       redisMock.setex.mockResolvedValue('OK');
-      emailService.sendBrevo.mockResolvedValue({ messageId: '123' });
+      dispatcherEmailService.sendEmail.mockResolvedValue({
+        message: 'Email sent successfully',
+      });
 
       const result = await service.generateAndSendCode(email, purpose);
 
@@ -188,7 +192,7 @@ describe('AuthService', () => {
       );
       expect(redisMock.set).toHaveBeenCalled();
       expect(redisMock.setex).toHaveBeenCalled();
-      expect(emailService.sendBrevo).toHaveBeenCalledWith(
+      expect(dispatcherEmailService.sendEmail).toHaveBeenCalledWith(
         email,
         expect.any(String),
         expect.any(String),
@@ -203,14 +207,16 @@ describe('AuthService', () => {
       redisMock.ttl.mockResolvedValue(-2);
       redisMock.set.mockResolvedValue('OK');
       redisMock.setex.mockResolvedValue('OK');
-      emailService.sendBrevo.mockResolvedValue({ messageId: '123' });
+      dispatcherEmailService.sendEmail.mockResolvedValue({
+        message: 'Email sent successfully',
+      });
 
       const result = await service.generateAndSendCode(email, purpose);
 
       expect(result).toEqual({
         message: `code sent to ${email}`,
       });
-      expect(emailService.sendBrevo).toHaveBeenCalled();
+      expect(dispatcherEmailService.sendEmail).toHaveBeenCalled();
     });
 
     it('Should generate and send code for update', async () => {
@@ -220,14 +226,16 @@ describe('AuthService', () => {
       redisMock.ttl.mockResolvedValue(-2);
       redisMock.set.mockResolvedValue('OK');
       redisMock.setex.mockResolvedValue('OK');
-      emailService.sendBrevo.mockResolvedValue({ messageId: '123' });
+      dispatcherEmailService.sendEmail.mockResolvedValue({
+        message: 'Email sent successfully',
+      });
 
       const result = await service.generateAndSendCode(email, purpose);
 
       expect(result).toEqual({
         message: `code sent to ${email}`,
       });
-      expect(emailService.sendBrevo).toHaveBeenCalled();
+      expect(dispatcherEmailService.sendEmail).toHaveBeenCalled();
     });
 
     it('Should throw BadRequestException if cooldown active', async () => {

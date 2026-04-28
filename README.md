@@ -11,7 +11,7 @@ API REST para a plataforma FotoUai, construida com NestJS 11, TypeORM, PostgreSQ
 - **Storage**: Supabase Storage (uploads de imagens)
 - **Auth**: JWT (Passport.js) com blacklist via Redis + Social Login (Firebase)
 - **Pagamentos**: Stripe (checkout, webhooks, reembolsos)
-- **Email**: Resend + Brevo (nodemailer)
+- **Email**: Dispatcher HTTP interno (container `dispatcher-email` via infra-network)
 - **CAPTCHA**: Cloudflare Turnstile
 - **Docs**: Swagger (disponivel em `/api`)
 - **Seguranca**: Helmet, CSRF, Rate Limiting, RBAC
@@ -65,11 +65,8 @@ npm run build && npm run start
 | `SUPABASE_URL` | URL do projeto Supabase | `https://xxx.supabase.co` |
 | `SUPABASE_KEY` | Chave do Supabase | `eyJ...` |
 | `SUPABASE_BUCKET` | Nome do bucket | `uploads` |
-| `RESEND_API_KEY` | Chave da API Resend | `re_...` |
-| `RESEND_FROM_EMAIL` | Remetente Resend | `noreply@fotouai.com` |
-| `BREVO_API_KEY` | Chave da API Brevo | `xkeysib-...` |
-| `BREVO_SENDER_EMAIL` | Remetente Brevo | `noreply@fotouai.com` |
-| `BREVO_SENDER_NAME` | Nome remetente Brevo | `FotoUai Notifications` |
+| `DISPATCHER_EMAIL_URL` | URL do dispatcher de email (rede interna Docker) | `http://dispatcher-email:3000` |
+| `DISPATCHER_FROM_EMAIL` | Remetente dos emails | `noreply@fotouai.com.br` |
 | `STRIPE_SECRET_KEY` | Chave secreta Stripe | `sk_test_...` |
 | `STRIPE_WEBHOOK_SECRET` | Webhook secret Stripe | `whsec_...` |
 | `FIREBASE_PROJECT_ID` | Project ID do Firebase | `my-project-id` |
@@ -89,7 +86,7 @@ src/
     qrcode/         # QR Codes (CRUD, tokens publicos)
     upload/         # Upload de imagens (Supabase Storage)
     banner/         # Banners do dashboard (CRUD admin)
-    email/          # Servico de envio de emails (Resend + Brevo)
+    dispatcher-email/ # Despacho de emails via HTTP (container interno)
     payment/        # Pagamentos (Stripe checkout, webhooks, reembolsos)
     health-check/   # Health check endpoint
   common/
@@ -229,7 +226,7 @@ Acoes administrativas sao registradas na tabela `audit_log`:
 
 ## Testes
 
-- **275 testes unitarios** com 100% de cobertura em todos os servicos
+- **387 testes unitarios** com 100% de cobertura em todos os servicos
 - Jest com thresholds globais de 100% (branches, functions, lines, statements)
 
 ```bash

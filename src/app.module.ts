@@ -6,7 +6,6 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { APP_GUARD } from '@nestjs/core';
 import { config } from 'dotenv';
 import { AuthModule } from './modules/auth/auth.module';
-import { EmailModule } from './modules/email/email.module';
 import { HealthCheckModule } from './modules/health-check/health-check.module';
 import { QrcodeModule } from './modules/qrcode/qrcode.module';
 import { UploadModule } from './modules/upload/upload.module';
@@ -63,7 +62,6 @@ config();
     UserModule,
     HealthCheckModule,
     UploadModule,
-    EmailModule,
     QrcodeModule,
     BannerModule,
     PaymentModule,

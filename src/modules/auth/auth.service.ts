@@ -7,7 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { Redis } from 'ioredis';
 import { randomBytes } from 'crypto';
-import { EmailService } from '../email/email.service';
+import { DispatcherEmailService } from '../dispatcher-email/dispatcher-email.service';
 import { User } from '../user/entity/user.entity';
 import { UserService } from '../user/user.service';
 import { AuthPayload } from './interfaces/auth.interface';
@@ -21,7 +21,7 @@ export class AuthService {
     @Inject('REDIS') private readonly redis: Redis,
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
-    private readonly emailService: EmailService,
+    private readonly dispatcherEmailService: DispatcherEmailService,
   ) {}
 
   async validateUserByPassword(
@@ -145,7 +145,7 @@ export class AuthService {
 
     console.log(`[Auth] verification code generated for ${email} =>`, code);
 
-    await this.emailService.sendBrevo(email, subject, text, html);
+    await this.dispatcherEmailService.sendEmail(email, subject, text, html);
     console.log(`[Auth] email sent successfully to ${email}`);
 
     return { message: `code sent to ${email}` };

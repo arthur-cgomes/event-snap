@@ -8,7 +8,7 @@ import { Repository } from 'typeorm';
 import { Upload } from '../entity/upload.entity';
 import { UploadService } from '../upload.service';
 import { QrcodeService } from '../../qrcode/qrcode.service';
-import { EmailService } from '../../email/email.service';
+import { DispatcherEmailService } from '../../dispatcher-email/dispatcher-email.service';
 import { CacheService } from '../../../common/services/cache.service';
 import { QrCodeType } from '../../../common/enum/qrcode-type.enum';
 import { QrCodePlan } from '../../../common/enum/qrcode-plan.enum';
@@ -43,7 +43,7 @@ describe('UploadService', () => {
   let service: UploadService;
   let uploadRepository: jest.Mocked<Repository<Upload>>;
   let qrcodeService: jest.Mocked<QrcodeService>;
-  let emailService: jest.Mocked<EmailService>;
+  let dispatcherEmailService: jest.Mocked<DispatcherEmailService>;
   let cacheService: jest.Mocked<CacheService>;
 
   beforeEach(async () => {
@@ -62,7 +62,7 @@ describe('UploadService', () => {
       updateLastUploadAt: jest.fn().mockResolvedValue(undefined),
     } as any;
 
-    emailService = {
+    dispatcherEmailService = {
       sendEmail: jest.fn(),
     } as any;
 
@@ -85,8 +85,8 @@ describe('UploadService', () => {
           useValue: qrcodeService,
         },
         {
-          provide: EmailService,
-          useValue: emailService,
+          provide: DispatcherEmailService,
+          useValue: dispatcherEmailService,
         },
         {
           provide: CacheService,
@@ -101,7 +101,7 @@ describe('UploadService', () => {
     service = new UploadService(
       uploadRepository,
       qrcodeService,
-      emailService,
+      dispatcherEmailService,
       cacheService,
     );
   });
@@ -710,8 +710,8 @@ describe('UploadService', () => {
       await service.uploadImage('token-123', mockFile);
 
       expect(qrcodeService.getQrCodeWithUser).toHaveBeenCalledWith('qr-1');
-      expect(emailService.sendEmail).toHaveBeenCalled();
-      expect(emailService.sendEmail).toHaveBeenCalledWith(
+      expect(dispatcherEmailService.sendEmail).toHaveBeenCalled();
+      expect(dispatcherEmailService.sendEmail).toHaveBeenCalledWith(
         'user@example.com',
         expect.stringContaining('primeira foto'),
         expect.any(String),
@@ -750,7 +750,7 @@ describe('UploadService', () => {
 
       await service.uploadImage('token-123', mockFile);
 
-      expect(emailService.sendEmail).not.toHaveBeenCalled();
+      expect(dispatcherEmailService.sendEmail).not.toHaveBeenCalled();
     });
 
     it('Should not send email when user has no email', async () => {
@@ -784,7 +784,7 @@ describe('UploadService', () => {
 
       await service.uploadImage('token-123', mockFile);
 
-      expect(emailService.sendEmail).not.toHaveBeenCalled();
+      expect(dispatcherEmailService.sendEmail).not.toHaveBeenCalled();
     });
 
     it('Should catch and log email sending errors on first upload', async () => {
@@ -801,7 +801,7 @@ describe('UploadService', () => {
         },
       } as any);
 
-      emailService.sendEmail.mockRejectedValue(
+      dispatcherEmailService.sendEmail.mockRejectedValue(
         new Error('Email service error'),
       );
 
@@ -857,7 +857,7 @@ describe('UploadService', () => {
       await service.uploadImage('token-123', mockFile);
 
       expect(qrcodeService.getQrCodeWithUser).not.toHaveBeenCalled();
-      expect(emailService.sendEmail).not.toHaveBeenCalled();
+      expect(dispatcherEmailService.sendEmail).not.toHaveBeenCalled();
     });
   });
 
@@ -1116,17 +1116,17 @@ describe('UploadService', () => {
         user: { email: 'user@test.com', name: null, notifyOnUpload: true },
       };
       qrcodeService.getQrCodeWithUser.mockResolvedValue(qrWithUser as any);
-      emailService.sendEmail.mockResolvedValue(undefined);
+      dispatcherEmailService.sendEmail.mockResolvedValue(undefined);
 
       await service.uploadImage('token-123', mockFile);
 
-      expect(emailService.sendEmail).toHaveBeenCalledWith(
+      expect(dispatcherEmailService.sendEmail).toHaveBeenCalledWith(
         'user@test.com',
         expect.anything(),
         expect.stringContaining('Olá !'),
         expect.anything(),
       );
-      expect(emailService.sendEmail).toHaveBeenCalledWith(
+      expect(dispatcherEmailService.sendEmail).toHaveBeenCalledWith(
         'user@test.com',
         expect.anything(),
         expect.stringContaining('Seu Evento'),

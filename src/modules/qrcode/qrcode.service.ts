@@ -41,7 +41,7 @@ import { UserCreatedEvent } from '../../common/events/user-created.event';
 import { QrCodeType } from '../../common/enum/qrcode-type.enum';
 import { QrCodePlan } from '../../common/enum/qrcode-plan.enum';
 import { APP_CONSTANTS } from '../../common/constants';
-import { EmailService } from '../email/email.service';
+import { DispatcherEmailService } from '../dispatcher-email/dispatcher-email.service';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -54,7 +54,7 @@ export class QrcodeService {
     private readonly qrCodeRepository: Repository<QrCode>,
     private readonly userService: UserService,
     private readonly cacheService: CacheService,
-    private readonly emailService: EmailService,
+    private readonly dispatcherEmailService: DispatcherEmailService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -620,7 +620,7 @@ export class QrcodeService {
     if (channel === 'email') {
       for (const email of recipients) {
         try {
-          await this.emailService.sendEmail(
+          await this.dispatcherEmailService.sendEmail(
             email.trim(),
             `Você foi convidado para ${qrCode.eventName || 'um evento'} no FotoUai!`,
             `Olá! Você foi convidado para o evento "${qrCode.eventName}". Acesse: ${eventUrl}`,

@@ -8,7 +8,7 @@ import {
   repositoryMockFactory,
 } from '../../../common/utils/test.util';
 import { CacheService } from '../../../common/services/cache.service';
-import { EmailService } from '../../email/email.service';
+import { DispatcherEmailService } from '../../dispatcher-email/dispatcher-email.service';
 import { PaymentService } from '../payment.service';
 import { Payment } from '../entity/payment.entity';
 import { QrCode } from '../../qrcode/entity/qrcode.entity';
@@ -28,7 +28,7 @@ describe('PaymentService', () => {
   let qrCodeRepository: MockRepository<Repository<QrCode>>;
   let configService: jest.Mocked<ConfigService>;
   let cacheService: jest.Mocked<CacheService>;
-  let emailService: jest.Mocked<EmailService>;
+  let dispatcherEmailService: jest.Mocked<DispatcherEmailService>;
 
   const mockUser = { id: 'user-id', email: 'test@example.com' } as any;
 
@@ -68,8 +68,7 @@ describe('PaymentService', () => {
       delByPattern: jest.fn().mockResolvedValue(undefined),
     } as any;
 
-    emailService = {
-      sendBrevo: jest.fn().mockResolvedValue({ messageId: 'msg-123' }),
+    dispatcherEmailService = {
       sendEmail: jest.fn().mockResolvedValue(undefined),
     } as any;
 
@@ -93,8 +92,8 @@ describe('PaymentService', () => {
           useValue: cacheService,
         },
         {
-          provide: EmailService,
-          useValue: emailService,
+          provide: DispatcherEmailService,
+          useValue: dispatcherEmailService,
         },
       ],
     }).compile();
@@ -240,7 +239,7 @@ describe('PaymentService', () => {
       paymentRepository.save = jest.fn().mockResolvedValue(mockPayment);
       qrCodeRepository.findOne = jest.fn().mockResolvedValue(mockQrCode);
       qrCodeRepository.save = jest.fn().mockResolvedValue(mockQrCode);
-      emailService.sendEmail = jest.fn().mockResolvedValue(undefined);
+      dispatcherEmailService.sendEmail = jest.fn().mockResolvedValue(undefined);
 
       await service.handleWebhook(Buffer.from('body'), 'sig');
 
@@ -544,11 +543,11 @@ describe('PaymentService', () => {
       paymentRepository.save = jest.fn().mockResolvedValue(paymentWithUser);
       qrCodeRepository.findOne = jest.fn().mockResolvedValue(mockQrCode);
       qrCodeRepository.save = jest.fn().mockResolvedValue(mockQrCode);
-      emailService.sendEmail = jest.fn().mockResolvedValue(undefined);
+      dispatcherEmailService.sendEmail = jest.fn().mockResolvedValue(undefined);
 
       await service.handleWebhook(Buffer.from('body'), 'sig');
 
-      expect(emailService.sendEmail).toHaveBeenCalledWith(
+      expect(dispatcherEmailService.sendEmail).toHaveBeenCalledWith(
         userWithEmail.email,
         expect.stringContaining('Pagamento confirmado'),
         expect.anything(),
@@ -579,7 +578,7 @@ describe('PaymentService', () => {
       paymentRepository.save = jest.fn().mockResolvedValue(paymentWithUser);
       qrCodeRepository.findOne = jest.fn().mockResolvedValue(mockQrCode);
       qrCodeRepository.save = jest.fn().mockResolvedValue(mockQrCode);
-      emailService.sendEmail = jest
+      dispatcherEmailService.sendEmail = jest
         .fn()
         .mockRejectedValue(new Error('Email failed'));
 
@@ -743,11 +742,11 @@ describe('PaymentService', () => {
       paymentRepository.save = jest.fn().mockResolvedValue(paymentNoName);
       qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeNoEventName);
       qrCodeRepository.save = jest.fn().mockResolvedValue(qrCodeNoEventName);
-      emailService.sendEmail = jest.fn().mockResolvedValue(undefined);
+      dispatcherEmailService.sendEmail = jest.fn().mockResolvedValue(undefined);
 
       await service.handleWebhook(Buffer.from('body'), 'sig');
 
-      expect(emailService.sendEmail).toHaveBeenCalledWith(
+      expect(dispatcherEmailService.sendEmail).toHaveBeenCalledWith(
         userNoName.email,
         expect.stringContaining('Pagamento confirmado'),
         expect.stringContaining('Seu Evento'),
@@ -778,7 +777,7 @@ describe('PaymentService', () => {
       paymentRepository.save = jest.fn().mockResolvedValue(paymentWithUser);
       qrCodeRepository.findOne = jest.fn().mockResolvedValue(mockQrCode);
       qrCodeRepository.save = jest.fn().mockResolvedValue(mockQrCode);
-      emailService.sendEmail = jest.fn().mockImplementation(() => {
+      dispatcherEmailService.sendEmail = jest.fn().mockImplementation(() => {
         return Promise.reject('plain string email error');
       });
 
@@ -1207,7 +1206,7 @@ describe('PaymentService', () => {
       expect(cacheService.del).toHaveBeenCalledWith('qrcode:token:token-123');
       expect(cacheService.delByPattern).toHaveBeenCalledWith('qrcode:user:*');
 
-      expect(emailService.sendEmail).toHaveBeenCalled();
+      expect(dispatcherEmailService.sendEmail).toHaveBeenCalled();
     });
 
     it('Should handle refund when email send fails', async () => {
@@ -1227,7 +1226,7 @@ describe('PaymentService', () => {
       qrCodeRepository.save = jest
         .fn()
         .mockResolvedValue(paymentWithUser.qrCode);
-      emailService.sendEmail = jest
+      dispatcherEmailService.sendEmail = jest
         .fn()
         .mockRejectedValue(new Error('Email failed'));
 
@@ -1414,11 +1413,11 @@ describe('PaymentService', () => {
           .fn()
           .mockResolvedValue({ id: 're-1', status: 'succeeded' }),
       };
-      emailService.sendEmail = jest.fn().mockResolvedValue(undefined);
+      dispatcherEmailService.sendEmail = jest.fn().mockResolvedValue(undefined);
 
       await service.requestRefund('payment-id', userNoName as any);
 
-      expect(emailService.sendEmail).toHaveBeenCalledWith(
+      expect(dispatcherEmailService.sendEmail).toHaveBeenCalledWith(
         userNoName.email,
         expect.stringContaining('Reembolso'),
         expect.stringContaining('Olá !'),
@@ -1454,7 +1453,7 @@ describe('PaymentService', () => {
           .fn()
           .mockResolvedValue({ id: 're-1', status: 'succeeded' }),
       };
-      emailService.sendEmail = jest
+      dispatcherEmailService.sendEmail = jest
         .fn()
         .mockRejectedValue('plain string error');
 
@@ -1519,11 +1518,11 @@ describe('PaymentService', () => {
       paymentRepository.save = jest.fn().mockResolvedValue(corporatePayment);
       qrCodeRepository.findOne = jest.fn().mockResolvedValue(mockQrCode);
       qrCodeRepository.save = jest.fn().mockResolvedValue(mockQrCode);
-      emailService.sendEmail = jest.fn().mockResolvedValue(undefined);
+      dispatcherEmailService.sendEmail = jest.fn().mockResolvedValue(undefined);
 
       await service.handleWebhook(Buffer.from('body'), 'sig');
 
-      expect(emailService.sendEmail).toHaveBeenCalledWith(
+      expect(dispatcherEmailService.sendEmail).toHaveBeenCalledWith(
         userWithEmail.email,
         expect.anything(),
         expect.anything(),
@@ -1565,11 +1564,11 @@ describe('PaymentService', () => {
           .fn()
           .mockResolvedValue({ id: 're-1', status: 'succeeded' }),
       };
-      emailService.sendEmail = jest.fn().mockResolvedValue(undefined);
+      dispatcherEmailService.sendEmail = jest.fn().mockResolvedValue(undefined);
 
       await service.requestRefund('payment-id', userWithEmail as any);
 
-      expect(emailService.sendEmail).toHaveBeenCalledWith(
+      expect(dispatcherEmailService.sendEmail).toHaveBeenCalledWith(
         userWithEmail.email,
         expect.anything(),
         expect.anything(),
@@ -1638,11 +1637,11 @@ describe('PaymentService', () => {
       paymentRepository.save = jest.fn().mockResolvedValue(paymentWithUser);
       qrCodeRepository.findOne = jest.fn().mockResolvedValue(mockQrCode);
       qrCodeRepository.save = jest.fn().mockResolvedValue(mockQrCode);
-      emailService.sendEmail = jest.fn().mockResolvedValue(undefined);
+      dispatcherEmailService.sendEmail = jest.fn().mockResolvedValue(undefined);
 
       await service.handleWebhook(Buffer.from('body'), 'sig');
 
-      expect(emailService.sendEmail).toHaveBeenCalledWith(
+      expect(dispatcherEmailService.sendEmail).toHaveBeenCalledWith(
         userWithEmail.email,
         expect.anything(),
         expect.anything(),

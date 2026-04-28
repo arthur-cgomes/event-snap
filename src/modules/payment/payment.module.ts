@@ -5,13 +5,13 @@ import { Payment } from './entity/payment.entity';
 import { QrCode } from '../qrcode/entity/qrcode.entity';
 import { PaymentService } from './payment.service';
 import { PaymentController } from './payment.controller';
-import { EmailModule } from '../email/email.module';
+import { DispatcherEmailModule } from '../dispatcher-email/dispatcher-email.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Payment, QrCode]),
     ConfigModule,
-    EmailModule,
+    DispatcherEmailModule,
   ],
   controllers: [PaymentController],
   providers: [PaymentService],

@@ -6,7 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { QrCode } from '../../modules/qrcode/entity/qrcode.entity';
 import { Upload } from '../../modules/upload/entity/upload.entity';
 import { subDays, addHours } from 'date-fns';
-import { EmailService } from '../../modules/email/email.service';
+import { DispatcherEmailService } from '../../modules/dispatcher-email/dispatcher-email.service';
 
 @Injectable()
 export class CleanupTask {
@@ -17,7 +17,7 @@ export class CleanupTask {
     private readonly qrCodeRepository: Repository<QrCode>,
     @InjectRepository(Upload)
     private readonly uploadRepository: Repository<Upload>,
-    private readonly emailService: EmailService,
+    private readonly dispatcherEmailService: DispatcherEmailService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -101,7 +101,7 @@ export class CleanupTask {
             ? new Date(qrCode.expirationDate).toLocaleDateString('pt-BR')
             : 'em breve';
 
-          await this.emailService.sendEmail(
+          await this.dispatcherEmailService.sendEmail(
             qrCode.user.email,
             `FotoUai — Seu evento "${qrCode.eventName || 'Evento'}" expira em breve!`,
             `Olá ${qrCode.user.name || ''}! O evento "${qrCode.eventName || 'Seu Evento'}" vai expirar em ${expiresAt}. Após a expiração, não será mais possível enviar novas fotos/vídeos. Se necessário, faça o upgrade para Premium para estender o prazo.`,

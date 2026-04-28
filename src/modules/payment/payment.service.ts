@@ -16,7 +16,7 @@ import { QrCodePlan } from '../../common/enum/qrcode-plan.enum';
 import { User } from '../user/entity/user.entity';
 import { APP_CONSTANTS } from '../../common/constants';
 import { CacheService } from '../../common/services/cache.service';
-import { EmailService } from '../email/email.service';
+import { DispatcherEmailService } from '../dispatcher-email/dispatcher-email.service';
 
 @Injectable()
 export class PaymentService {
@@ -41,7 +41,7 @@ export class PaymentService {
     private readonly qrCodeRepository: Repository<QrCode>,
     private readonly configService: ConfigService,
     private readonly cacheService: CacheService,
-    private readonly emailService: EmailService,
+    private readonly dispatcherEmailService: DispatcherEmailService,
   ) {}
 
   async createCheckoutSession(
@@ -233,7 +233,7 @@ export class PaymentService {
           const amountFormatted = (payment.amount / 100)
             .toFixed(2)
             .replace('.', ',');
-          await this.emailService.sendEmail(
+          await this.dispatcherEmailService.sendEmail(
             payment.user.email,
             'FotoUai — Pagamento confirmado!',
             `Olá ${payment.user.name || ''}! Seu pagamento de R$${amountFormatted} foi confirmado. O evento "${qrCode.eventName || 'Seu Evento'}" agora é ${plan} e aceita fotos e vídeos até ${newExpiration.toLocaleDateString('pt-BR')}.`,
@@ -513,7 +513,7 @@ export class PaymentService {
           const amountFormatted = (payment.amount / 100)
             .toFixed(2)
             .replace('.', ',');
-          await this.emailService.sendEmail(
+          await this.dispatcherEmailService.sendEmail(
             payment.user.email,
             'FotoUai — Reembolso processado',
             `Olá ${payment.user.name || ''}! Seu reembolso de R$${amountFormatted} foi processado com sucesso. O valor será estornado na sua forma de pagamento original em até 10 dias úteis.`,

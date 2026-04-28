@@ -14,7 +14,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../../../common/services/cache.service';
 import { UserService } from '../../user/user.service';
-import { EmailService } from '../../email/email.service';
+import { DispatcherEmailService } from '../../dispatcher-email/dispatcher-email.service';
 import { QrcodeService } from '../qrcode.service';
 import { QrCode } from '../entity/qrcode.entity';
 import { User } from '../../user/entity/user.entity';
@@ -86,7 +86,7 @@ describe('QrcodeService', () => {
           },
         },
         {
-          provide: EmailService,
+          provide: DispatcherEmailService,
           useValue: {
             sendEmail: jest.fn().mockResolvedValue(undefined),
           },
@@ -1621,7 +1621,7 @@ describe('QrcodeService', () => {
   });
 
   describe('sendInvites', () => {
-    let emailService: jest.Mocked<EmailService>;
+    let dispatcherEmailService: jest.Mocked<DispatcherEmailService>;
 
     beforeEach(async () => {
       const module: TestingModule = await Test.createTestingModule({
@@ -1646,7 +1646,7 @@ describe('QrcodeService', () => {
             },
           },
           {
-            provide: EmailService,
+            provide: DispatcherEmailService,
             useValue: {
               sendEmail: jest.fn().mockResolvedValue(undefined),
             },
@@ -1660,7 +1660,7 @@ describe('QrcodeService', () => {
         ],
       }).compile();
 
-      emailService = module.get(EmailService);
+      dispatcherEmailService = module.get(DispatcherEmailService);
       qrCodeRepository = module.get(getRepositoryToken(QrCode));
       service = module.get<QrcodeService>(QrcodeService);
     });
@@ -1687,7 +1687,7 @@ describe('QrcodeService', () => {
 
       expect(result.sent).toBe(2);
       expect(result.cost).toBe(0.04);
-      expect(emailService.sendEmail).toHaveBeenCalledTimes(2);
+      expect(dispatcherEmailService.sendEmail).toHaveBeenCalledTimes(2);
     });
 
     it('Should build correct invite email content', async () => {
@@ -1708,7 +1708,8 @@ describe('QrcodeService', () => {
 
       await service.sendInvites('qr-id', recipients, 'email', user);
 
-      const emailCall = (emailService.sendEmail as jest.Mock).mock.calls[0];
+      const emailCall = (dispatcherEmailService.sendEmail as jest.Mock).mock
+        .calls[0];
       expect(emailCall[0]).toBe('recipient@example.com');
       expect(emailCall[1]).toContain('Wedding');
       expect(emailCall[3]).toContain('Grand Hotel');
@@ -1727,7 +1728,7 @@ describe('QrcodeService', () => {
       cacheService.get = jest.fn().mockResolvedValue(null);
       qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeMock);
 
-      (emailService.sendEmail as jest.Mock)
+      (dispatcherEmailService.sendEmail as jest.Mock)
         .mockResolvedValueOnce(undefined)
         .mockRejectedValueOnce(new Error('Send failed'));
 
@@ -1757,7 +1758,8 @@ describe('QrcodeService', () => {
 
       await service.sendInvites('qr-id', recipients, 'email', user);
 
-      const firstCall = (emailService.sendEmail as jest.Mock).mock.calls[0][0];
+      const firstCall = (dispatcherEmailService.sendEmail as jest.Mock).mock
+        .calls[0][0];
       expect(firstCall).toBe('test@example.com');
     });
 
@@ -1807,7 +1809,7 @@ describe('QrcodeService', () => {
 
       await service.sendInvites('qr-id', recipients, 'email', user);
 
-      const htmlContent = (emailService.sendEmail as jest.Mock).mock
+      const htmlContent = (dispatcherEmailService.sendEmail as jest.Mock).mock
         .calls[0][3];
       expect(htmlContent).toContain('Anniversary Party');
       expect(htmlContent).toContain('Beach Resort');
@@ -2036,8 +2038,11 @@ describe('QrcodeService', () => {
       cacheService.get = jest.fn().mockResolvedValue(null);
       qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeNoName);
 
-      const emailServiceMock = (service as any).emailService;
-      emailServiceMock.sendEmail = jest.fn().mockResolvedValue(undefined);
+      const dispatcherEmailServiceMock = (service as any)
+        .dispatcherEmailService;
+      dispatcherEmailServiceMock.sendEmail = jest
+        .fn()
+        .mockResolvedValue(undefined);
 
       const result = await service.sendInvites(
         'qr-id',
@@ -2047,7 +2052,7 @@ describe('QrcodeService', () => {
       );
 
       expect(result.sent).toBe(1);
-      expect(emailServiceMock.sendEmail).toHaveBeenCalledWith(
+      expect(dispatcherEmailServiceMock.sendEmail).toHaveBeenCalledWith(
         'test@test.com',
         expect.stringContaining('um evento'),
         expect.anything(),
@@ -2068,8 +2073,11 @@ describe('QrcodeService', () => {
       cacheService.get = jest.fn().mockResolvedValue(null);
       qrCodeRepository.findOne = jest.fn().mockResolvedValue(qrCodeMock);
 
-      const emailServiceMock = (service as any).emailService;
-      emailServiceMock.sendEmail = jest.fn().mockResolvedValue(undefined);
+      const dispatcherEmailServiceMock = (service as any)
+        .dispatcherEmailService;
+      dispatcherEmailServiceMock.sendEmail = jest
+        .fn()
+        .mockResolvedValue(undefined);
 
       const result = await service.sendInvites(
         'qr-id',
@@ -2079,7 +2087,7 @@ describe('QrcodeService', () => {
       );
 
       expect(result.sent).toBe(1);
-      expect(emailServiceMock.sendEmail).toHaveBeenCalledWith(
+      expect(dispatcherEmailServiceMock.sendEmail).toHaveBeenCalledWith(
         'test@test.com',
         expect.anything(),
         expect.stringContaining('My Event'),
@@ -2118,7 +2126,7 @@ describe('QrcodeService', () => {
       };
       jest.spyOn(service, 'getQrCodeById').mockResolvedValue(qrCodeMock as any);
 
-      const emailSvc = (service as any).emailService;
+      const emailSvc = (service as any).dispatcherEmailService;
       emailSvc.sendEmail = jest.fn().mockResolvedValue(undefined);
 
       const result = await service.sendInvites(

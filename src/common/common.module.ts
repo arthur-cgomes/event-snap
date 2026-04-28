@@ -8,14 +8,14 @@ import { CleanupTask } from './tasks/cleanup.task';
 import { QrCode } from '../modules/qrcode/entity/qrcode.entity';
 import { Upload } from '../modules/upload/entity/upload.entity';
 import { AuditLog } from './entity/audit-log.entity';
-import { EmailModule } from '../modules/email/email.module';
+import { DispatcherEmailModule } from '../modules/dispatcher-email/dispatcher-email.module';
 
 @Global()
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     TypeOrmModule.forFeature([QrCode, Upload, AuditLog]),
-    EmailModule,
+    DispatcherEmailModule,
   ],
   providers: [RedisProvider, CacheService, AuditService, CleanupTask],
   exports: [CacheService, AuditService],

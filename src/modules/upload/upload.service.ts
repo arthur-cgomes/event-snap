@@ -11,7 +11,7 @@ import sharp from 'sharp';
 import { supabase } from '../../common/config/supabase.config';
 import { Upload } from './entity/upload.entity';
 import { QrcodeService } from '../qrcode/qrcode.service';
-import { EmailService } from '../email/email.service';
+import { DispatcherEmailService } from '../dispatcher-email/dispatcher-email.service';
 import { QrCodeType } from '../../common/enum/qrcode-type.enum';
 import { QrCodePlan } from '../../common/enum/qrcode-plan.enum';
 import { CacheService } from '../../common/services/cache.service';
@@ -27,7 +27,7 @@ export class UploadService {
     @InjectRepository(Upload)
     private readonly uploadRepository: Repository<Upload>,
     private readonly qrCodeService: QrcodeService,
-    private readonly emailService: EmailService,
+    private readonly dispatcherEmailService: DispatcherEmailService,
     private readonly cacheService: CacheService,
   ) {}
 
@@ -154,7 +154,7 @@ export class UploadService {
           qrWithUser.user.notifyOnUpload !== false
         ) {
           const frontendUrl = process.env.FRONTEND_URL || 'localhost3001';
-          await this.emailService.sendEmail(
+          await this.dispatcherEmailService.sendEmail(
             qrWithUser.user.email,
             'FotoUai — Seu evento recebeu a primeira foto! 📸',
             `Olá ${qrWithUser.user.name || ''}! Seu evento "${qrCode.eventName || 'Seu Evento'}" acabou de receber a primeira foto. Acesse seu dashboard para conferir!`,
